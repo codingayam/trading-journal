@@ -144,7 +144,7 @@ export default async function StatsPage({ searchParams }: StatsPageProps) {
           </div>
         </header>
 
-        <form action="/stats" className="card filter-bar">
+        <form action="/stats" className="card stats-filter-bar">
           <label>
             From
             <input defaultValue={filters.from ?? ""} name="from" type="date" />
