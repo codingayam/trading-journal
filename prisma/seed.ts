@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { hashPassword } from "../lib/password";
 
 const prisma = new PrismaClient();
 
@@ -6,16 +7,20 @@ const demoUserId = "demo-user";
 const demoEmail = "demo@tradingjournal.local";
 
 async function main() {
+  const demoPasswordHash = await hashPassword("password123");
+
   await prisma.user.upsert({
     where: { id: demoUserId },
     create: {
       id: demoUserId,
       email: demoEmail,
       displayName: "Demo Trader",
+      passwordHash: demoPasswordHash,
     },
     update: {
       email: demoEmail,
       displayName: "Demo Trader",
+      passwordHash: demoPasswordHash,
     },
   });
 

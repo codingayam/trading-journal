@@ -1,8 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import { LogoutButton } from "@/app/logout-button";
+import { getCurrentUserWithTradingData } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
-
-const demoEmail = "demo@tradingjournal.local";
 
 function money(value: unknown) {
   const amount = Number(value ?? 0);
@@ -22,40 +22,10 @@ function dateLabel(value: Date) {
 }
 
 export default async function Home() {
-  const user = await prisma.user.findUnique({
-    where: { email: demoEmail },
-    include: {
-      dayNotes: {
-        orderBy: { noteDate: "desc" },
-        take: 3,
-      },
-      sessions: {
-        orderBy: { sessionDate: "desc" },
-        take: 4,
-      },
-      setups: {
-        orderBy: { name: "asc" },
-      },
-      trades: {
-        orderBy: { tradeDate: "desc" },
-        include: {
-          setup: true,
-          session: true,
-        },
-      },
-    },
-  });
+  const user = await getCurrentUserWithTradingData();
 
   if (!user) {
-    return (
-      <main className="shell">
-        <section className="empty-state">
-          <p className="eyebrow">Demo workspace</p>
-          <h1>No seeded user found</h1>
-          <p>Run the seed command to populate the local SQLite database.</p>
-        </section>
-      </main>
-    );
+    redirect("/login");
   }
 
   const totalPnl = user.trades.reduce(
@@ -79,6 +49,7 @@ export default async function Home() {
         </div>
         <div className="identity">
           <span>{user.email}</span>
+          <LogoutButton />
         </div>
       </header>
 
