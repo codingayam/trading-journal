@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @map("user_id")
+  email       String   @unique
+  displayName String   @map("display_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  dayNotes DayNote[]
+  sessions JournalSession[]
+  setups   TradeSetup[]
+  trades   Trade[]
+
+  @@map("users")
+}
+
+model JournalSession {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  title       String
+  sessionDate DateTime @map("session_date")
+  market      String?
+  summary     String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades Trade[]
+
+  @@index([userId, sessionDate], map: "sessions_user_date_idx")
+  @@map("sessions")
+}
+
+model TradeSetup {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  name        String
+  description String?
+  playbook    String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades Trade[]
+
+  @@unique([userId, name], map: "trade_setups_user_name_key")
+  @@map("trade_setups")
+}
+
+model Trade {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  setupId    String?   @map("setup_id")
+  sessionId  String?   @map("session_id")
+  tradeDate  DateTime  @map("trade_date")
+  symbol     String
+  side       String
+  quantity   Int
+  entryPrice Decimal   @map("entry_price")
+  exitPrice  Decimal?  @map("exit_price")
+  grossPnl   Decimal?  @map("gross_pnl")
+  notes      String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  setup   TradeSetup?     @relation(fields: [setupId], references: [id], onDelete: SetNull)
+  session JournalSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, tradeDate], map: "trades_user_date_idx")
+  @@index([userId, symbol], map: "trades_user_symbol_idx")
+  @@index([setupId], map: "trades_setup_idx")
+  @@index([sessionId], map: "trades_session_idx")
+  @@map("trades")
+}
+
+model DayNote {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  noteDate  DateTime @map("note_date")
+  title     String
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, noteDate], map: "day_notes_user_date_key")
+  @@map("day_notes")
+}
