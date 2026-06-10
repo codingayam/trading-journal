@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { DashboardView } from "@/app/dashboard-view";
 import { PnlCalendar } from "@/app/pnl-calendar";
 import { TradeLog, type TradeRecord } from "@/app/trade-log";
 
@@ -21,8 +22,11 @@ export function TradingWorkspace({ initialTrades }: TradingWorkspaceProps) {
 
   return (
     <>
-      <TradeLog onTradesChange={setTrades} trades={sortedTrades} />
-      <PnlCalendar trades={sortedTrades} />
+      <DashboardView trades={sortedTrades} />
+      <section className="dashboard-grid">
+        <TradeLog onTradesChange={setTrades} trades={sortedTrades} />
+        <PnlCalendar trades={sortedTrades} />
+      </section>
     </>
   );
 }
