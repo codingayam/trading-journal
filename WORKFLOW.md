@@ -216,7 +216,9 @@ Use this only when completion is blocked by missing required tools or missing au
     - You may make temporary local proof edits to validate assumptions (for example: tweak a local build input for `make`, or hardcode a UI account / response path) when this increases confidence.
     - Revert every temporary proof edit before commit/push.
     - Document these temporary proof steps and outcomes in the workpad `Validation`/`Notes` sections so reviewers can follow the evidence.
-    - If app-touching, run `launch-app` validation and capture/upload media via `github-pr-media` before handoff.
+    - If app-touching, run `launch-app` validation and capture/upload media via `github-pr-media` before handoff when available.
+    - For any Playwright, in-app Browser, or browser-related validation, attach the important screenshots to the Linear issue as attachments or upload-backed comment links. Include enough screenshots to prove the changed user flow and responsive states; do not upload every intermediate screen.
+    - Record screenshot attachment links in the workpad `Validation` section.
 6.  Re-check all acceptance criteria and close any gaps.
 7.  Before every `git push` attempt, run the required validation for your scope and confirm it passes; if it fails, address issues and rerun until green, then commit and push changes.
 8.  Attach PR URL to the issue (prefer attachment; use the workpad comment only if attachment is unavailable).
@@ -258,9 +260,10 @@ The parent Codex session is pre-authorized by the product owner to run the missi
 - Launch the local app from the relevant Symphony workspace.
 - Use the Codex In-app Browser against localhost.
 - Create throwaway local-only test users/data when needed.
+- Capture important screenshots and attach them to the Linear issue as attachments or upload-backed comment links.
 - Comment the validation result on the Linear issue.
 
-This authorization does not apply to external side effects beyond Linear comments, GitHub PR inspection, and local test data.
+This authorization does not apply to external side effects beyond Linear comments, Linear validation screenshot attachments, GitHub PR inspection, and local test data.
 
 ## Step 3: Human Review and merge handling
 
