@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { LogoutButton } from "@/app/logout-button";
-import { TradeLog } from "@/app/trade-log";
+import { TradingWorkspace } from "@/app/trading-workspace";
 import { getCurrentUserWithTradingData } from "@/lib/auth";
 import { serializeTrade } from "@/lib/trades";
 
@@ -115,7 +115,7 @@ export default async function Home() {
         </section>
 
         <section className="dashboard-grid">
-          <TradeLog initialTrades={user.trades.map(serializeTrade)} />
+          <TradingWorkspace initialTrades={user.trades.map(serializeTrade)} />
 
           <article className="card" id="stats">
             <div className="card-heading">
@@ -163,26 +163,6 @@ export default async function Home() {
                   <span className={setup.isActive ? "badge badge-success" : "badge"}>
                     {setup.isActive ? "Active" : "Paused"}
                   </span>
-                </article>
-              ))}
-            </div>
-          </article>
-
-          <article className="card" id="calendar">
-            <div className="card-heading">
-              <div>
-                <p className="eyebrow">Calendar</p>
-                <h2>Sessions</h2>
-              </div>
-            </div>
-            <div className="stack-list">
-              {user.sessions.map((session) => (
-                <article className="list-row" key={session.id}>
-                  <div>
-                    <strong>{session.title}</strong>
-                    <span>{session.market ?? "Market not set"}</span>
-                  </div>
-                  <time>{dateLabel(session.sessionDate)}</time>
                 </article>
               ))}
             </div>
