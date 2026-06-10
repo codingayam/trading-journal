@@ -38,7 +38,11 @@ codex:
   read_timeout_ms: 60000
   turn_sandbox_policy:
     type: workspaceWrite
+    writableRoots:
+      - /Users/admin/code/symphony-workspaces
     networkAccess: true
+    excludeTmpdirEnvVar: false
+    excludeSlashTmp: false
 ---
 
 You are working on a Linear ticket `{{ issue.identifier }}`
