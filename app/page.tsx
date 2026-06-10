@@ -1,12 +1,10 @@
 import { redirect } from "next/navigation";
-import { LogoutButton } from "@/app/logout-button";
+import { AppSidebar } from "@/app/app-sidebar";
 import { TradeLog } from "@/app/trade-log";
 import { getCurrentUserWithTradingData } from "@/lib/auth";
 import { serializeTrade } from "@/lib/trades";
 
 export const dynamic = "force-dynamic";
-
-const navItems = ["Dashboard", "Trades", "Setups", "Stats", "Calendar"];
 
 function money(value: unknown) {
   const amount = Number(value ?? 0);
@@ -55,31 +53,7 @@ export default async function Home() {
 
   return (
     <main className="app-shell">
-      <aside className="sidebar" aria-label="Product navigation">
-        <div className="brand-lockup" aria-label="Trading Journal">
-          <span className="brand-mark">TJ</span>
-          <div>
-            <strong>Trading Journal</strong>
-            <span>{user.displayName}</span>
-          </div>
-        </div>
-
-        <nav className="side-nav">
-          {navItems.map((item) => (
-            <a
-              aria-current={item === "Dashboard" ? "page" : undefined}
-              href={`#${item.toLowerCase()}`}
-              key={item}
-            >
-              {item}
-            </a>
-          ))}
-        </nav>
-
-        <div className="sidebar-footer">
-          <LogoutButton />
-        </div>
-      </aside>
+      <AppSidebar current="Dashboard" displayName={user.displayName} />
 
       <section className="workspace">
         <header className="workspace-header" id="dashboard">

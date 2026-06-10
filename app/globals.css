@@ -247,6 +247,11 @@ a {
   margin-bottom: 14px;
 }
 
+.stats-metric-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
 .dashboard-grid {
   grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
 }
@@ -400,6 +405,65 @@ tbody tr:hover {
 .note-grid {
   display: grid;
   gap: 12px;
+}
+
+.filter-bar {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(180px, 1fr)) auto;
+}
+
+.filter-bar label {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.82rem;
+  font-weight: 800;
+  gap: 6px;
+}
+
+.filter-bar input {
+  background: #121514;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  min-height: 42px;
+  padding: 9px 10px;
+}
+
+.filter-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.filter-actions .secondary-button {
+  align-items: center;
+  display: inline-flex;
+}
+
+.breakdown-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stats-table {
+  min-width: 560px;
+}
+
+.empty-panel {
+  margin-top: 14px;
+}
+
+.empty-panel h2 {
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.empty-state {
+  color: var(--muted);
 }
 
 .chart-row {
@@ -960,7 +1024,8 @@ tbody tr:hover {
   }
 
   .metric-grid,
-  .dashboard-grid {
+  .dashboard-grid,
+  .breakdown-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -997,8 +1062,20 @@ tbody tr:hover {
 
   .metric-grid,
   .dashboard-grid,
-  .entry-form {
+  .entry-form,
+  .filter-bar,
+  .breakdown-grid {
     grid-template-columns: 1fr;
+  }
+
+  .filter-actions {
+    justify-content: stretch;
+  }
+
+  .filter-actions button,
+  .filter-actions .secondary-button {
+    justify-content: center;
+    width: 100%;
   }
 
   .modal-actions {
