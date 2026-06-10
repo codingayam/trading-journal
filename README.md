@@ -21,7 +21,10 @@ The default local database URL is `file:./dev.db`, which creates
 npm run dev
 ```
 
-Open `http://localhost:3000` to view the seeded demo user's placeholder shell.
+Open `http://localhost:3000` and log in with:
+
+- Email: `demo@tradingjournal.local`
+- Password: `password123`
 
 ## Test And Build
 
@@ -38,6 +41,6 @@ npm run db:seed
 npm run db:reset
 ```
 
-`db:seed` is idempotent and upserts one demo user, trading sessions, setups,
-trades, and day notes. `db:reset` removes the local SQLite file, reapplies the
-migration, and reseeds the demo data.
+`db:seed` is idempotent and upserts one demo user, two setups, four closed
+trades, and one open trade. `db:reset` removes the local SQLite file, reapplies
+the migration, and reseeds the demo data.

@@ -35,8 +35,6 @@ async function resetDb() {
   await prisma.authSession.deleteMany();
   await prisma.trade.deleteMany();
   await prisma.tradeSetup.deleteMany();
-  await prisma.journalSession.deleteMany();
-  await prisma.dayNote.deleteMany();
   await prisma.user.deleteMany();
 }
 
@@ -67,7 +65,6 @@ async function run() {
       entryPrice: "100",
       fees: "0",
       status: "OPEN",
-      notes: "first user trade",
     },
   });
   await prisma.trade.create({
@@ -81,7 +78,6 @@ async function run() {
       entryPrice: "200",
       fees: "0",
       status: "OPEN",
-      notes: "second user trade",
     },
   });
 
