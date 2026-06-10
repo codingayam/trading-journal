@@ -4,11 +4,11 @@ This repository is configured for the upstream Symphony Elixir runner.
 
 - Linear project: `Trading Journal`
 - Linear project slug: `trading-journal-9d4d0298c64a`
-- Poll interval: `3600000` ms (1 hour)
+- Poll interval: `600000` ms (10 minutes)
 - Workflow file: `WORKFLOW.md`
 - Local env file: `.env.symphony` (git-ignored)
 - Runtime clone: `.symphony/runtime/symphony`
-- Workspaces: `~/code/symphony-workspaces` by default
+- Workspaces: `.symphony/workspaces`
 - Optional upstream skills copied: `commit`, `push`, `pull`, `land`, `linear`
 
 ## Runtime install

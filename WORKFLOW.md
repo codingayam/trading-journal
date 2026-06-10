@@ -17,7 +17,7 @@ tracker:
 polling:
   interval_ms: 600000
 workspace:
-  root: ~/code/symphony-workspaces
+  root: /Users/admin/Documents/trading-journal/.symphony/workspaces
 hooks:
   after_create: |
     git clone --depth 1 "${SYMPHONY_SOURCE_REPO:-/Users/admin/Documents/trading-journal}" .
@@ -39,7 +39,9 @@ codex:
   turn_sandbox_policy:
     type: workspaceWrite
     writableRoots:
-      - /Users/admin/code/symphony-workspaces
+      - /Users/admin/Documents/trading-journal/.symphony/workspaces
+    readOnlyAccess:
+      type: fullAccess
     networkAccess: true
     excludeTmpdirEnvVar: false
     excludeSlashTmp: false
