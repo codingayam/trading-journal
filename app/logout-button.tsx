@@ -15,8 +15,8 @@ export function LogoutButton() {
   }
 
   return (
-    <button className="ghost-button" disabled={pending} onClick={logout} type="button">
-      {pending ? "Signing out" : "Log out"}
+    <button className="nav-button" disabled={pending} onClick={logout} type="button">
+      {pending ? "Signing out" : "Logout"}
     </button>
   );
 }
