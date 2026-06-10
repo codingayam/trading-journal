@@ -269,6 +269,15 @@ a {
   min-height: 116px;
 }
 
+.dashboard-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+}
+
+.compact-metric {
+  min-height: 94px;
+  padding: 14px;
+}
+
 .metric-card span,
 .metric-card small,
 .card-heading span,
@@ -281,6 +290,35 @@ a {
 
 .metric-card strong {
   font-size: 1.75rem;
+}
+
+.compact-metric strong {
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
+.filter-bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.filter-bar button {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-weight: 800;
+  min-height: 38px;
+  padding: 8px 11px;
+}
+
+.filter-bar button:hover,
+.filter-bar button[aria-pressed="true"] {
+  background: var(--surface-soft);
+  color: var(--ink);
 }
 
 .card-heading {
@@ -390,6 +428,31 @@ tbody tr:hover {
   background: rgba(255, 255, 255, 0.025);
 }
 
+.dense-table-wrap {
+  background: #111514;
+  border: 1px solid #26302d;
+  border-radius: 8px;
+}
+
+.dense-trade-table {
+  min-width: 880px;
+}
+
+.dense-trade-table th,
+.dense-trade-table td {
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
+.dense-trade-table th {
+  background: #151a19;
+  color: #8f9d98;
+}
+
+.dense-trade-table td {
+  font-size: 0.88rem;
+}
+
 .symbol {
   color: var(--ink);
   font-weight: 900;
@@ -400,6 +463,75 @@ tbody tr:hover {
 .note-grid {
   display: grid;
   gap: 12px;
+}
+
+.dashboard-empty {
+  align-items: start;
+  background: #151a19;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+  padding: 22px;
+}
+
+.dashboard-empty strong {
+  color: var(--ink);
+}
+
+.dashboard-empty span {
+  max-width: 620px;
+}
+
+.equity-chart {
+  display: grid;
+  gap: 16px;
+}
+
+.equity-chart svg {
+  background: #111514;
+  border: 1px solid #26302d;
+  border-radius: 8px;
+  height: 220px;
+  width: 100%;
+}
+
+.equity-baseline {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 0.8;
+}
+
+.equity-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.equity-points {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.equity-points div {
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+}
+
+.equity-points span,
+.equity-points em {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-style: normal;
 }
 
 .chart-row {
