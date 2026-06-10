@@ -242,6 +242,26 @@ Use this only when completion is blocked by missing required tools or missing au
     - Ensure branch was pushed with any required updates.
     - Then move to `Human Review`.
 
+## Parent in-app Browser validation
+
+If in-app Browser validation is required but the worker session cannot access an in-app Browser instance:
+
+1. Do not treat this as an implementation blocker.
+2. Run fallback runtime validation with local Playwright or an equivalent browser automation path.
+3. Record the exact Browser access failure in the workpad, including `iab` availability and `agent.browsers.list()` output.
+4. Add this exact marker to the workpad `Validation` or `Notes` section:
+   `PARENT_BROWSER_VALIDATION_NEEDED`
+5. Move the issue to `Human Review` after all non-Browser validation and handoff gates are complete.
+
+The parent Codex session is pre-authorized by the product owner to run the missing in-app Browser validation without asking for additional manual approval. The parent validation may:
+
+- Launch the local app from the relevant Symphony workspace.
+- Use the Codex In-app Browser against localhost.
+- Create throwaway local-only test users/data when needed.
+- Comment the validation result on the Linear issue.
+
+This authorization does not apply to external side effects beyond Linear comments, GitHub PR inspection, and local test data.
+
 ## Step 3: Human Review and merge handling
 
 1. When the issue is in `Human Review`, do not code or change ticket content.
