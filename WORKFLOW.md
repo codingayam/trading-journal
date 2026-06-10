@@ -34,17 +34,10 @@ agent:
 codex:
   command: ./scripts/codex-app-server-proxy
   approval_policy: never
-  thread_sandbox: workspace-write
+  thread_sandbox: danger-full-access
   read_timeout_ms: 60000
   turn_sandbox_policy:
-    type: workspaceWrite
-    writableRoots:
-      - /Users/admin/Documents/trading-journal/.symphony/workspaces
-    readOnlyAccess:
-      type: fullAccess
-    networkAccess: true
-    excludeTmpdirEnvVar: false
-    excludeSlashTmp: false
+    type: dangerFullAccess
 ---
 
 You are working on a Linear ticket `{{ issue.identifier }}`

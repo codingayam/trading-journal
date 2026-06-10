@@ -34,6 +34,7 @@ scripts/run-symphony
 
 The dashboard/API will be available on port `4000` unless `SYMPHONY_PORT` is changed.
 The runner passes Symphony's required preview acknowledgement flag explicitly.
+Worker Codex turns run with `danger-full-access` because this workflow requires unattended git metadata writes for branch, commit, push, and PR handoff.
 
 ## Repository source
 
