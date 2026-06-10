@@ -6,17 +6,14 @@ assets, logos, screenshots, proprietary copy, or unsupported marketing claims.
 
 ## In Scope
 
-- Auth: login and signup pages with email/password forms, Google auth button
-  placement, and a split layout that pairs the form with a product preview/value
-  panel.
+- Auth: login and logout only. Use email/password login with pre-provisioned
+  credentials and a split layout that pairs the form with a product
+  preview/value panel.
 - Dashboard: authenticated app shell with compact date filters, KPI cards, PnL
   summary, and an at-a-glance trade table.
 - Trades: a dedicated MVP trade-list surface using the dense dashboard table
   style. The source app shows the trade list inside the dashboard; do not assume
   a Stonk `/trades` route exists.
-- Setups: a lightweight MVP setup-management page because setups are part of
-  the accepted product scope. The source site references setups as a feature,
-  but the observed source app did not expose a dedicated `/setups` route.
 - Stats: summary metric cards plus dense breakdown tables for tags, symbols, or
   comparable aggregate slices.
 - Calendar: calendar grid with a compact weekly summary area.
@@ -27,14 +24,16 @@ assets, logos, screenshots, proprietary copy, or unsupported marketing claims.
   narrative modules.
 - No trade review or trade-detail review screen.
 - No accounts module, broker/account rollups, account profile, or account
-  management flows.
+  management flows beyond basic login/logout.
 - No settings, profile/settings, password/security, danger/data tools, or tag
   manager.
+- No setups page or setup-management flow.
+- No signup flow, Google auth button, or third-party auth.
 - No marketing site, pricing page, blog, public share pages, AI coach, CSV
   import, broker sync, or subscription/paywall flows.
 
 For validation clarity: this MVP must include no trade journal, no trade review,
-no accounts, and no settings.
+no accounts beyond login and logout, no settings, no setups, no signup, and no Google auth.
 
 ## UI Reference Notes
 
@@ -42,7 +41,8 @@ Reference pages checked on 2026-06-10:
 
 - `https://stonkjournal.com/`
 - `https://app.stonkjournal.com/login`
-- `https://app.stonkjournal.com/signup`
+- `https://app.stonkjournal.com/signup` as a visual reference only; signup is
+  excluded from the MVP.
 - Authenticated app shell after login for dashboard/stats/calendar and excluded
   account/settings boundaries.
 
@@ -63,8 +63,9 @@ Reference pages checked on 2026-06-10:
 
 - Split auth layout: form column on the left, product screenshot/value panel on
   the right.
-- Form stack is compact: logo/link, headline, subhead, Google button, divider,
-  email/password inputs, primary login button, and signup link.
+- Form stack is compact: logo/link, headline, subhead, email/password inputs,
+  and primary login button. Do not include Google auth or signup links in the
+  MVP.
 - Inputs and buttons are rounded, full-width, and visually quiet.
 - The right panel reinforces the product with a short value statement and app
   screenshot reference. For this product, recreate the layout pattern without
@@ -72,11 +73,9 @@ Reference pages checked on 2026-06-10:
 
 ### Signup
 
-- Same split auth layout as login.
-- Left form includes name, email, password, Google signup button, and a login
-  link for existing users.
-- Keep the form compact and vertically aligned with consistent input/button
-  sizing.
+- Treat this page as a visual reference only for split auth spacing, input
+  sizing, and vertical alignment.
+- Do not implement signup, Google signup, or self-service account creation.
 
 ### Authenticated App Shell
 
@@ -89,8 +88,9 @@ Reference pages checked on 2026-06-10:
 - Stats page uses compact metric cards followed by dense tables.
 - Calendar page uses the same app shell with a large calendar area and compact
   weekly summary.
-- Account/profile/settings/tag/security/data-tool screens exist in the source
-  app but are excluded from this MVP.
+- Account/profile/settings/tag/security/data-tool screens and setup-management
+  screens exist or are referenced in the source product, but are excluded from
+  this MVP.
 
 ## Visual Tokens
 
