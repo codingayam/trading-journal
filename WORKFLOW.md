@@ -35,6 +35,7 @@ codex:
   command: ./scripts/codex-app-server-proxy
   approval_policy: never
   thread_sandbox: workspace-write
+  read_timeout_ms: 60000
   turn_sandbox_policy:
     type: workspaceWrite
     networkAccess: true
