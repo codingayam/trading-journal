@@ -83,6 +83,41 @@ h3 {
   white-space: nowrap;
 }
 
+.identity {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.ghost-button,
+.primary-button,
+.segmented button {
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.ghost-button {
+  background: var(--surface-soft);
+  color: var(--ink);
+  padding: 7px 10px;
+}
+
+.primary-button {
+  background: var(--accent);
+  color: white;
+  min-height: 44px;
+  padding: 10px 14px;
+}
+
+.ghost-button:disabled,
+.primary-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -242,6 +277,70 @@ td {
 
 .empty-state h1 {
   margin-bottom: 10px;
+}
+
+.auth-shell {
+  align-items: center;
+  display: grid;
+  min-height: 100vh;
+  padding: 32px 16px;
+}
+
+.auth-panel {
+  margin: 0 auto;
+  max-width: 430px;
+  width: 100%;
+}
+
+.auth-panel h1 {
+  margin-bottom: 24px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-form label {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.88rem;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.auth-form input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+.segmented {
+  background: var(--surface-soft);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 4px;
+}
+
+.segmented button {
+  background: transparent;
+  color: var(--muted);
+  min-height: 38px;
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.form-error {
+  color: var(--danger);
+  font-size: 0.9rem;
 }
 
 @media (max-width: 820px) {
