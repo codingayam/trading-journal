@@ -38,4 +38,4 @@ Worker Codex turns run with `danger-full-access` because this workflow requires 
 
 ## Repository source
 
-This repo currently has no Git remote, so `WORKFLOW.md` clones from the local path in `SYMPHONY_SOURCE_REPO`. Add a Git remote and update `.env.symphony` if you want Symphony workspaces to clone from GitHub instead.
+Symphony workspaces clone from `SYMPHONY_SOURCE_REPO`, currently set in `.env.symphony` to `https://github.com/codingayam/trading-journal.git`. Keep this pointed at the GitHub remote so worker branches can push and open PRs.

@@ -20,7 +20,7 @@ workspace:
   root: /Users/admin/Documents/trading-journal/.symphony/workspaces
 hooks:
   after_create: |
-    git clone --depth 1 "${SYMPHONY_SOURCE_REPO:-/Users/admin/Documents/trading-journal}" .
+    git clone --depth 1 "${SYMPHONY_SOURCE_REPO:-https://github.com/codingayam/trading-journal.git}" .
     if [ -f .mise.toml ] && command -v mise >/dev/null 2>&1; then
       mise trust && mise exec -- true
     fi
