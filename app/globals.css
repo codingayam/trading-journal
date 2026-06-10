@@ -15,6 +15,8 @@
   --warning: #e0b850;
   --danger: #f16f6f;
   --danger-soft: #472323;
+  --blue: #2563eb;
+  --blue-strong: #1d4ed8;
   --focus: #8bd8ff;
 }
 
@@ -322,6 +324,39 @@ a {
   color: var(--accent);
 }
 
+.badge-danger {
+  background: var(--danger-soft);
+  border-color: rgba(241, 111, 111, 0.28);
+  color: var(--danger);
+}
+
+.muted-cell {
+  color: var(--muted);
+}
+
+.trade-log-heading {
+  align-items: flex-start;
+}
+
+.trade-log-actions,
+.row-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.table-button {
+  font-size: 0.78rem;
+  min-height: 34px;
+  padding: 7px 9px;
+}
+
+.danger-button {
+  background: var(--danger-soft);
+  border-color: rgba(241, 111, 111, 0.28);
+  color: #ffc9c9;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -587,12 +622,19 @@ tbody tr:hover {
   padding: 10px 12px;
 }
 
+.entry-form input:disabled {
+  color: #69746f;
+  opacity: 0.8;
+}
+
 .entry-form input:focus,
 .entry-form select:focus,
 .entry-form textarea:focus,
 .primary-button:focus-visible,
 .secondary-button:focus-visible,
 .icon-button:focus-visible,
+.save-button:focus-visible,
+.side-control button:focus-visible,
 .side-nav a:focus-visible,
 .nav-button:focus-visible {
   outline: 2px solid var(--focus);
@@ -621,6 +663,64 @@ tbody tr:hover {
 .segmented button[aria-pressed="true"] {
   background: var(--surface-soft);
   color: var(--ink);
+}
+
+.side-control {
+  background: #121514;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 6px;
+}
+
+.side-control button {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--muted);
+  font-weight: 900;
+  min-height: 42px;
+}
+
+.side-long {
+  background: rgba(55, 201, 143, 0.12);
+}
+
+.side-short {
+  background: rgba(241, 111, 111, 0.12);
+}
+
+.side-long[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #062018;
+}
+
+.side-short[aria-pressed="true"] {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #220808;
+}
+
+.save-button {
+  background: var(--blue);
+  border: 1px solid var(--blue);
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 900;
+  min-height: 42px;
+  padding: 10px 14px;
+}
+
+.save-button:hover {
+  background: var(--blue-strong);
+  border-color: var(--blue-strong);
+}
+
+.save-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .form-error {

@@ -6,16 +6,16 @@ import { POST as login } from "../app/api/auth/login/route";
 import { POST as logout } from "../app/api/auth/logout/route";
 import { POST as register } from "../app/api/auth/register/route";
 import { GET as me } from "../app/api/me/route";
-import { PATCH as updateTrade } from "../app/api/trades/[id]/route";
-import { GET as listTrades } from "../app/api/trades/route";
+import { DELETE as deleteTrade, PATCH as updateTrade } from "../app/api/trades/[id]/route";
+import { GET as listTrades, POST as createTrade } from "../app/api/trades/route";
 import { hashPassword, verifyPassword } from "../lib/password";
 
 const dbPath = "prisma/auth-test.db";
 const prisma = new PrismaClient();
 
-function jsonRequest(url: string, body?: unknown, cookie?: string) {
+function jsonRequest(url: string, body?: unknown, cookie?: string, method?: string) {
   return new Request(url, {
-    method: body === undefined ? "GET" : "POST",
+    method: method ?? (body === undefined ? "GET" : "POST"),
     headers: {
       ...(body === undefined ? {} : { "content-type": "application/json" }),
       ...(cookie ? { cookie } : {}),
@@ -60,10 +60,13 @@ async function run() {
     data: {
       userId: first.id,
       tradeDate: new Date("2026-06-10T10:00:00.000Z"),
+      assetClass: "Stock",
       symbol: "AAPL",
       side: "LONG",
       quantity: 10,
       entryPrice: "100",
+      fees: "0",
+      status: "OPEN",
       notes: "first user trade",
     },
   });
@@ -71,10 +74,13 @@ async function run() {
     data: {
       userId: second.id,
       tradeDate: new Date("2026-06-10T11:00:00.000Z"),
+      assetClass: "Stock",
       symbol: "MSFT",
       side: "LONG",
       quantity: 5,
       entryPrice: "200",
+      fees: "0",
+      status: "OPEN",
       notes: "second user trade",
     },
   });
@@ -110,6 +116,56 @@ async function run() {
     tradesBody.trades.map((trade: { symbol: string }) => trade.symbol),
     ["AAPL"],
   );
+  assert.equal(tradesBody.trades[0].returnAmount, null);
+
+  const createResponse = await createTrade(
+    jsonRequest(
+      "http://test.local/api/trades",
+      {
+        assetClass: "Stock",
+        symbol: "nvda",
+        side: "LONG",
+        quantity: 2,
+        entryDateTime: "2026-06-10T12:00:00.000Z",
+        entryPrice: 100,
+        exitDateTime: null,
+        exitPrice: null,
+        fees: 1,
+        status: "OPEN",
+      },
+      firstCookie,
+    ),
+  );
+  assert.equal(createResponse.status, 201);
+  const createdTrade = (await createResponse.json()).trade;
+  assert.equal(createdTrade.symbol, "NVDA");
+  assert.equal(createdTrade.returnAmount, null);
+
+  const closeResponse = await updateTrade(
+    jsonRequest(
+      `http://test.local/api/trades/${createdTrade.id}`,
+      {
+        exitDateTime: "2026-06-10T13:00:00.000Z",
+        exitPrice: 112,
+        fees: 4,
+        status: "CLOSED",
+      },
+      firstCookie,
+      "PATCH",
+    ),
+    { params: Promise.resolve({ id: createdTrade.id }) },
+  );
+  assert.equal(closeResponse.status, 200);
+  const closedTrade = (await closeResponse.json()).trade;
+  assert.equal(closedTrade.returnAmount, 20);
+  assert.equal(closedTrade.returnPercent, 10);
+  assert.equal(
+    Number(
+      (await prisma.trade.findUniqueOrThrow({ where: { id: createdTrade.id } }))
+        .grossPnl,
+    ),
+    20,
+  );
 
   const secondLoginResponse = await login(
     jsonRequest("http://test.local/api/auth/login", {
@@ -121,30 +177,40 @@ async function run() {
   const crossUserPatch = await updateTrade(
     jsonRequest(
       `http://test.local/api/trades/${firstTrade.id}`,
-      { notes: "modified by second user" },
+      { symbol: "TSLA" },
       secondCookie,
+      "PATCH",
     ),
     { params: Promise.resolve({ id: firstTrade.id }) },
   );
   assert.equal(crossUserPatch.status, 404);
   assert.equal(
-    (await prisma.trade.findUniqueOrThrow({ where: { id: firstTrade.id } })).notes,
-    "first user trade",
+    (await prisma.trade.findUniqueOrThrow({ where: { id: firstTrade.id } })).symbol,
+    "AAPL",
   );
 
-  const ownPatch = await updateTrade(
+  const crossUserDelete = await deleteTrade(
     jsonRequest(
       `http://test.local/api/trades/${firstTrade.id}`,
-      { notes: "modified by owner" },
-      firstCookie,
+      undefined,
+      secondCookie,
+      "DELETE",
     ),
     { params: Promise.resolve({ id: firstTrade.id }) },
   );
-  assert.equal(ownPatch.status, 200);
-  assert.equal(
-    (await prisma.trade.findUniqueOrThrow({ where: { id: firstTrade.id } })).notes,
-    "modified by owner",
+  assert.equal(crossUserDelete.status, 404);
+
+  const ownDelete = await deleteTrade(
+    jsonRequest(
+      `http://test.local/api/trades/${createdTrade.id}`,
+      undefined,
+      firstCookie,
+      "DELETE",
+    ),
+    { params: Promise.resolve({ id: createdTrade.id }) },
   );
+  assert.equal(ownDelete.status, 204);
+  assert.equal(await prisma.trade.findUnique({ where: { id: createdTrade.id } }), null);
 
   const registerResponse = await register(
     jsonRequest("http://test.local/api/auth/register", {

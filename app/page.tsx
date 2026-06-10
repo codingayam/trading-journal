@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { LogoutButton } from "@/app/logout-button";
-import { TradeEntryModal } from "@/app/trade-entry-modal";
+import { TradeLog } from "@/app/trade-log";
 import { getCurrentUserWithTradingData } from "@/lib/auth";
+import { serializeTrade } from "@/lib/trades";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +87,6 @@ export default async function Home() {
             <p className="eyebrow">Dashboard</p>
             <h1>Trading Command Center</h1>
           </div>
-          <TradeEntryModal />
         </header>
 
         <section className="metric-grid" aria-label="Trading summary">
@@ -115,51 +115,7 @@ export default async function Home() {
         </section>
 
         <section className="dashboard-grid">
-          <article className="card span-2" id="trades">
-            <div className="card-heading">
-              <div>
-                <p className="eyebrow">Trades</p>
-                <h2>Recent Trades</h2>
-              </div>
-              <span className="badge">{user.trades.length} seeded</span>
-            </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Symbol</th>
-                    <th>Side</th>
-                    <th>Setup</th>
-                    <th>Quantity</th>
-                    <th>P/L</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {user.trades.map((trade) => (
-                    <tr key={trade.id}>
-                      <td>{dateLabel(trade.tradeDate)}</td>
-                      <td className="symbol">{trade.symbol}</td>
-                      <td>
-                        <span className="badge badge-neutral">{trade.side}</span>
-                      </td>
-                      <td>{trade.setup?.name ?? "Unassigned"}</td>
-                      <td>{trade.quantity}</td>
-                      <td
-                        className={
-                          Number(trade.grossPnl ?? 0) >= 0
-                            ? "positive"
-                            : "negative"
-                        }
-                      >
-                        {money(trade.grossPnl)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </article>
+          <TradeLog initialTrades={user.trades.map(serializeTrade)} />
 
           <article className="card" id="stats">
             <div className="card-heading">
