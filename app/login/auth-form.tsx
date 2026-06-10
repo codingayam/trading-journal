@@ -1,13 +1,20 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export function AuthForm() {
+type AuthMode = "login" | "signup";
+
+type AuthFormProps = {
+  mode: AuthMode;
+};
+
+export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<"login" | "signup">("login");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const isSignup = mode === "signup";
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,47 +49,31 @@ export function AuthForm() {
 
   return (
     <form className="auth-form" onSubmit={submit}>
-      <div className="segmented" aria-label="Auth mode">
-        <button
-          aria-pressed={mode === "login"}
-          onClick={() => {
-            setMode("login");
-            setError("");
-          }}
-          type="button"
-        >
-          Log in
-        </button>
-        <button
-          aria-pressed={mode === "signup"}
-          onClick={() => {
-            setMode("signup");
-            setError("");
-          }}
-          type="button"
-        >
-          Sign up
-        </button>
-      </div>
-
-      {mode === "signup" ? (
+      {isSignup ? (
         <label>
           Name
-          <input autoComplete="name" name="name" required />
+          <input autoComplete="name" name="name" placeholder="Alex Morgan" required />
         </label>
       ) : null}
 
       <label>
         Email
-        <input autoComplete="email" name="email" required type="email" />
+        <input
+          autoComplete="email"
+          name="email"
+          placeholder="you@example.com"
+          required
+          type="email"
+        />
       </label>
 
       <label>
         Password
         <input
-          autoComplete={mode === "signup" ? "new-password" : "current-password"}
+          autoComplete={isSignup ? "new-password" : "current-password"}
           minLength={8}
           name="password"
+          placeholder="At least 8 characters"
           required
           type="password"
         />
@@ -91,8 +82,15 @@ export function AuthForm() {
       {error ? <p className="form-error">{error}</p> : null}
 
       <button className="primary-button" disabled={pending} type="submit">
-        {pending ? "Working" : mode === "signup" ? "Create account" : "Log in"}
+        {pending ? "Working" : isSignup ? "Create free account" : "Log in"}
       </button>
+
+      <p className="auth-switch">
+        {isSignup ? "Already have an account?" : "New to Trading Journal?"}{" "}
+        <Link href={isSignup ? "/login" : "/signup"}>
+          {isSignup ? "Log in" : "Create a free account"}
+        </Link>
+      </p>
     </form>
   );
 }
