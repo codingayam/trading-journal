@@ -216,8 +216,8 @@ Use this only when completion is blocked by missing required tools or missing au
     - You may make temporary local proof edits to validate assumptions (for example: tweak a local build input for `make`, or hardcode a UI account / response path) when this increases confidence.
     - Revert every temporary proof edit before commit/push.
     - Document these temporary proof steps and outcomes in the workpad `Validation`/`Notes` sections so reviewers can follow the evidence.
-    - If app-touching, run `launch-app` validation and capture/upload media via `github-pr-media` before handoff when available.
-    - For any Playwright, in-app Browser, or browser-related validation, attach the important screenshots to the Linear issue as attachments or upload-backed comment links. Include enough screenshots to prove the changed user flow and responsive states; do not upload every intermediate screen.
+    - If app-touching, use Playwright or equivalent browser automation as the main runtime validation path, and capture/upload media before handoff.
+    - For any Playwright or browser-related validation, attach the important screenshots to the Linear issue as attachments or upload-backed comment links. Include enough screenshots to prove the changed user flow and responsive states; do not upload every intermediate screen.
     - Record screenshot attachment links in the workpad `Validation` section.
 6.  Re-check all acceptance criteria and close any gaps.
 7.  Before every `git push` attempt, run the required validation for your scope and confirm it passes; if it fails, address issues and rerun until green, then commit and push changes.
@@ -243,27 +243,6 @@ Use this only when completion is blocked by missing required tools or missing au
     - Ensure all existing PR feedback was reviewed and resolved, including inline review comments (code changes or explicit, justified pushback response).
     - Ensure branch was pushed with any required updates.
     - Then move to `Human Review`.
-
-## Parent in-app Browser validation
-
-If in-app Browser validation is required but the worker session cannot access an in-app Browser instance:
-
-1. Do not treat this as an implementation blocker.
-2. Run fallback runtime validation with local Playwright or an equivalent browser automation path.
-3. Record the exact Browser access failure in the workpad, including `iab` availability and `agent.browsers.list()` output.
-4. Add this exact marker to the workpad `Validation` or `Notes` section:
-   `PARENT_BROWSER_VALIDATION_NEEDED`
-5. Move the issue to `Human Review` after all non-Browser validation and handoff gates are complete.
-
-The parent Codex session is pre-authorized by the product owner to run the missing in-app Browser validation without asking for additional manual approval. The parent validation may:
-
-- Launch the local app from the relevant Symphony workspace.
-- Use the Codex In-app Browser against localhost.
-- Create throwaway local-only test users/data when needed.
-- Capture important screenshots and attach them to the Linear issue as attachments or upload-backed comment links.
-- Comment the validation result on the Linear issue.
-
-This authorization does not apply to external side effects beyond Linear comments, Linear validation screenshot attachments, GitHub PR inspection, and local test data.
 
 ## Step 3: Human Review and merge handling
 
