@@ -153,14 +153,6 @@ export async function getCurrentUserWithTradingData() {
   return prisma.user.findUnique({
     where: { id: currentUser.id },
     include: {
-      dayNotes: {
-        orderBy: { noteDate: "desc" },
-        take: 3,
-      },
-      sessions: {
-        orderBy: { sessionDate: "desc" },
-        take: 4,
-      },
       setups: {
         orderBy: { name: "asc" },
       },
@@ -168,7 +160,6 @@ export async function getCurrentUserWithTradingData() {
         orderBy: { tradeDate: "desc" },
         include: {
           setup: true,
-          session: true,
         },
       },
     },

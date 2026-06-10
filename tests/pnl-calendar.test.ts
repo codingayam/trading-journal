@@ -36,6 +36,17 @@ const trades: CalendarTrade[] = [
     returnPercent: 0.88,
   },
   {
+    id: "trade-meta-2026-06-09",
+    symbol: "META",
+    side: "SHORT",
+    quantity: 10,
+    entryDateTime: "2026-06-09T13:40:00.000Z",
+    exitDateTime: "2026-06-09T14:05:00.000Z",
+    status: "CLOSED",
+    returnAmount: -18,
+    returnPercent: -0.28,
+  },
+  {
     id: "trade-open",
     symbol: "NVDA",
     side: "LONG",
@@ -49,8 +60,8 @@ const trades: CalendarTrade[] = [
 ];
 
 const june = buildMonthlyPnlCalendar(trades, 2026, 5);
-assert.equal(june.monthPnl, 109);
-assert.equal(june.tradeCount, 3);
+assert.equal(june.monthPnl, 91);
+assert.equal(june.tradeCount, 4);
 
 const june8 = june.days.find((day) => day.dateKey === "2026-06-08");
 assert.ok(june8);
@@ -63,11 +74,11 @@ assert.deepEqual(
 
 const june9 = june.days.find((day) => day.dateKey === "2026-06-09");
 assert.ok(june9);
-assert.equal(june9.pnl, 14);
-assert.equal(june9.tradeCount, 2);
+assert.equal(june9.pnl, -4);
+assert.equal(june9.tradeCount, 3);
 assert.deepEqual(
   june9.trades.map((trade) => trade.symbol),
-  ["MSFT", "TSM"],
+  ["MSFT", "TSM", "META"],
 );
 
 const july = buildMonthlyPnlCalendar(trades, 2026, 6);

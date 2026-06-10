@@ -12,8 +12,6 @@ async function resetDb() {
   await prisma.authSession.deleteMany();
   await prisma.trade.deleteMany();
   await prisma.tradeSetup.deleteMany();
-  await prisma.journalSession.deleteMany();
-  await prisma.dayNote.deleteMany();
   await prisma.user.deleteMany();
 }
 

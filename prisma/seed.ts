@@ -66,49 +66,12 @@ async function main() {
     },
   });
 
-  await prisma.journalSession.upsert({
-    where: { id: "session-2026-06-08" },
-    create: {
-      id: "session-2026-06-08",
-      userId: demoUserId,
-      title: "Monday US cash session",
-      sessionDate: new Date("2026-06-08T13:30:00.000Z"),
-      market: "US equities",
-      summary: "Focused on liquid large caps and kept risk defined.",
-    },
-    update: {
-      title: "Monday US cash session",
-      sessionDate: new Date("2026-06-08T13:30:00.000Z"),
-      market: "US equities",
-      summary: "Focused on liquid large caps and kept risk defined.",
-    },
-  });
-
-  await prisma.journalSession.upsert({
-    where: { id: "session-2026-06-09" },
-    create: {
-      id: "session-2026-06-09",
-      userId: demoUserId,
-      title: "Tuesday Asia watchlist",
-      sessionDate: new Date("2026-06-09T01:30:00.000Z"),
-      market: "Asia equities",
-      summary: "Took fewer trades while waiting for confirmation.",
-    },
-    update: {
-      title: "Tuesday Asia watchlist",
-      sessionDate: new Date("2026-06-09T01:30:00.000Z"),
-      market: "Asia equities",
-      summary: "Took fewer trades while waiting for confirmation.",
-    },
-  });
-
   await prisma.trade.upsert({
     where: { id: "trade-aapl-2026-06-08" },
     create: {
       id: "trade-aapl-2026-06-08",
       userId: demoUserId,
       setupId: "setup-orb",
-      sessionId: "session-2026-06-08",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-08T14:05:00.000Z"),
       symbol: "AAPL",
@@ -120,11 +83,9 @@ async function main() {
       fees: "0",
       status: "CLOSED",
       grossPnl: "95.00",
-      notes: "Clean break with defined stop under opening range.",
     },
     update: {
       setupId: "setup-orb",
-      sessionId: "session-2026-06-08",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-08T14:05:00.000Z"),
       symbol: "AAPL",
@@ -136,7 +97,6 @@ async function main() {
       fees: "0",
       status: "CLOSED",
       grossPnl: "95.00",
-      notes: "Clean break with defined stop under opening range.",
     },
   });
 
@@ -145,8 +105,7 @@ async function main() {
     create: {
       id: "trade-msft-2026-06-08",
       userId: demoUserId,
-      setupId: "setup-pullback",
-      sessionId: "session-2026-06-08",
+      setupId: "setup-orb",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-08T15:20:00.000Z"),
       symbol: "MSFT",
@@ -158,11 +117,9 @@ async function main() {
       fees: "0",
       status: "CLOSED",
       grossPnl: "-34.00",
-      notes: "Support failed quickly; exited according to plan.",
     },
     update: {
-      setupId: "setup-pullback",
-      sessionId: "session-2026-06-08",
+      setupId: "setup-orb",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-08T15:20:00.000Z"),
       symbol: "MSFT",
@@ -174,7 +131,6 @@ async function main() {
       fees: "0",
       status: "CLOSED",
       grossPnl: "-34.00",
-      notes: "Support failed quickly; exited according to plan.",
     },
   });
 
@@ -183,8 +139,7 @@ async function main() {
     create: {
       id: "trade-tsm-2026-06-09",
       userId: demoUserId,
-      setupId: "setup-orb",
-      sessionId: "session-2026-06-09",
+      setupId: "setup-pullback",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-09T02:15:00.000Z"),
       symbol: "TSM",
@@ -196,11 +151,9 @@ async function main() {
       fees: "0",
       status: "CLOSED",
       grossPnl: "48.00",
-      notes: "Smaller size due to thinner morning liquidity.",
     },
     update: {
-      setupId: "setup-orb",
-      sessionId: "session-2026-06-09",
+      setupId: "setup-pullback",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-09T02:15:00.000Z"),
       symbol: "TSM",
@@ -212,27 +165,71 @@ async function main() {
       fees: "0",
       status: "CLOSED",
       grossPnl: "48.00",
-      notes: "Smaller size due to thinner morning liquidity.",
     },
   });
 
-  await prisma.dayNote.upsert({
-    where: {
-      userId_noteDate: {
-        userId: demoUserId,
-        noteDate: new Date("2026-06-08T00:00:00.000Z"),
-      },
-    },
+  await prisma.trade.upsert({
+    where: { id: "trade-meta-2026-06-09" },
     create: {
-      id: "day-note-2026-06-08",
+      id: "trade-meta-2026-06-09",
       userId: demoUserId,
-      noteDate: new Date("2026-06-08T00:00:00.000Z"),
-      title: "Risk stayed controlled",
-      body: "Best trades had clear invalidation before entry.",
+      setupId: "setup-pullback",
+      assetClass: "Stock",
+      tradeDate: new Date("2026-06-09T13:40:00.000Z"),
+      symbol: "META",
+      side: "SHORT",
+      quantity: 10,
+      entryPrice: "633.20",
+      exitDate: new Date("2026-06-09T14:05:00.000Z"),
+      exitPrice: "635.00",
+      fees: "0",
+      status: "CLOSED",
+      grossPnl: "-18.00",
     },
     update: {
-      title: "Risk stayed controlled",
-      body: "Best trades had clear invalidation before entry.",
+      setupId: "setup-pullback",
+      assetClass: "Stock",
+      tradeDate: new Date("2026-06-09T13:40:00.000Z"),
+      symbol: "META",
+      side: "SHORT",
+      quantity: 10,
+      entryPrice: "633.20",
+      exitDate: new Date("2026-06-09T14:05:00.000Z"),
+      exitPrice: "635.00",
+      fees: "0",
+      status: "CLOSED",
+      grossPnl: "-18.00",
+    },
+  });
+
+  await prisma.trade.upsert({
+    where: { id: "trade-nvda-2026-06-10" },
+    create: {
+      id: "trade-nvda-2026-06-10",
+      userId: demoUserId,
+      setupId: "setup-pullback",
+      assetClass: "Stock",
+      tradeDate: new Date("2026-06-10T14:30:00.000Z"),
+      symbol: "NVDA",
+      side: "LONG",
+      quantity: 5,
+      entryPrice: "143.20",
+      fees: "0",
+      status: "OPEN",
+    },
+    update: {
+      setupId: "setup-pullback",
+      assetClass: "Stock",
+      tradeDate: new Date("2026-06-10T14:30:00.000Z"),
+      symbol: "NVDA",
+      side: "LONG",
+      quantity: 5,
+      entryPrice: "143.20",
+      exitDate: null,
+      exitPrice: null,
+      fees: "0",
+      status: "OPEN",
+      grossPnl: null,
     },
   });
 }

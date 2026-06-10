@@ -16,8 +16,6 @@ model User {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   authSessions AuthSession[]
-  dayNotes     DayNote[]
-  sessions     JournalSession[]
   setups       TradeSetup[]
   trades       Trade[]
 
@@ -37,23 +35,6 @@ model AuthSession {
   @@index([userId], map: "auth_sessions_user_idx")
   @@index([expiresAt], map: "auth_sessions_expires_idx")
   @@map("auth_sessions")
-}
-
-model JournalSession {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  title       String
-  sessionDate DateTime @map("session_date")
-  market      String?
-  summary     String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trades Trade[]
-
-  @@index([userId, sessionDate], map: "sessions_user_date_idx")
-  @@map("sessions")
 }
 
 model TradeSetup {
@@ -77,7 +58,6 @@ model Trade {
   id         String    @id @default(cuid())
   userId     String    @map("user_id")
   setupId    String?   @map("setup_id")
-  sessionId  String?   @map("session_id")
   assetClass String    @default("Stock") @map("asset_class")
   tradeDate  DateTime  @map("trade_date")
   symbol     String
@@ -89,32 +69,14 @@ model Trade {
   fees       Decimal   @default(0)
   status     String    @default("OPEN")
   grossPnl   Decimal?  @map("gross_pnl")
-  notes      String?
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
-  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  setup   TradeSetup?     @relation(fields: [setupId], references: [id], onDelete: SetNull)
-  session JournalSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  setup TradeSetup? @relation(fields: [setupId], references: [id], onDelete: SetNull)
 
   @@index([userId, tradeDate], map: "trades_user_date_idx")
   @@index([userId, symbol], map: "trades_user_symbol_idx")
   @@index([setupId], map: "trades_setup_idx")
-  @@index([sessionId], map: "trades_session_idx")
   @@map("trades")
-}
-
-model DayNote {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  noteDate  DateTime @map("note_date")
-  title     String
-  body      String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, noteDate], map: "day_notes_user_date_key")
-  @@map("day_notes")
 }
