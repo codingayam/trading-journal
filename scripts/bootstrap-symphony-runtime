@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+: "${SYMPHONY_REPO:=$REPO_ROOT/.symphony/runtime/symphony}"
+
+if [[ -x "$HOME/.local/bin/mise" ]]; then
+  MISE_BIN="$HOME/.local/bin/mise"
+elif command -v mise >/dev/null 2>&1; then
+  MISE_BIN="$(command -v mise)"
+else
+  cat >&2 <<'MSG'
+mise is required by the upstream Symphony Elixir setup.
+
+Install mise first, then rerun this script:
+  curl https://mise.run | sh
+  ~/.local/bin/mise --version
+MSG
+  exit 1
+fi
+
+export PATH="$HOME/.local/share/mise/shims:$PATH"
+
+if [[ ! -d "$SYMPHONY_REPO/.git" ]]; then
+  git clone https://github.com/openai/symphony "$SYMPHONY_REPO"
+fi
+
+cd "$SYMPHONY_REPO/elixir"
+if ! grep -q '{:castore, "~> 1.0"}' mix.exs; then
+  git apply "$REPO_ROOT/scripts/symphony-runtime-castore.patch"
+fi
+"$MISE_BIN" trust
+"$MISE_BIN" install
+"$MISE_BIN" exec -- mix setup
+"$MISE_BIN" exec -- mix build

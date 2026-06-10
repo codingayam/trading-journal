@@ -1,0 +1,38 @@
+diff --git a/elixir/lib/symphony_elixir/linear/client.ex b/elixir/lib/symphony_elixir/linear/client.ex
+index a1f0250..d980ef3 100644
+--- a/elixir/lib/symphony_elixir/linear/client.ex
++++ b/elixir/lib/symphony_elixir/linear/client.ex
+@@ -398,10 +398,20 @@ defmodule SymphonyElixir.Linear.Client do
+     Req.post(Config.settings!().tracker.endpoint,
+       headers: headers,
+       json: payload,
+-      connect_options: [timeout: 30_000]
++      connect_options: linear_connect_options()
+     )
+   end
+ 
++  defp linear_connect_options do
++    case System.get_env("SYMPHONY_CACERTFILE") do
++      path when is_binary(path) and path != "" ->
++        [timeout: 30_000, transport_opts: [cacertfile: path]]
++
++      _ ->
++        [timeout: 30_000]
++    end
++  end
++
+   defp decode_linear_response(%{"data" => %{"issues" => %{"nodes" => nodes}}}, assignee_filter) do
+     issues =
+       nodes
+diff --git a/elixir/mix.exs b/elixir/mix.exs
+index aff9e4d..90ff8f1 100644
+--- a/elixir/mix.exs
++++ b/elixir/mix.exs
+@@ -69,6 +69,7 @@ defmodule SymphonyElixir.MixProject do
+       {:phoenix, "~> 1.8.0"},
+       {:phoenix_html, "~> 4.2"},
+       {:phoenix_live_view, "~> 1.1.0"},
++      {:castore, "~> 1.0"},
+       {:req, "~> 0.5"},
+       {:jason, "~> 1.4"},
+       {:yaml_elixir, "~> 2.12"},

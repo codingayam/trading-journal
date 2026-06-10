@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="$REPO_ROOT/.env.symphony"
+
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
+
+: "${LINEAR_API_KEY:?Set LINEAR_API_KEY in .env.symphony or the environment}"
+: "${SYMPHONY_HOME:=$REPO_ROOT/.symphony/runtime/symphony/elixir}"
+: "${SYMPHONY_WORKSPACE_ROOT:=$REPO_ROOT/.symphony/workspaces}"
+: "${SYMPHONY_SOURCE_REPO:=$REPO_ROOT}"
+: "${SYMPHONY_PORT:=4000}"
+: "${SYMPHONY_LOGS_ROOT:=$REPO_ROOT/.symphony/log}"
+: "${SYMPHONY_CACERTFILE:=$SYMPHONY_HOME/_build/dev/lib/castore/priv/cacerts.pem}"
+
+if [[ -x "$HOME/.local/bin/mise" ]]; then
+  MISE_BIN="$HOME/.local/bin/mise"
+elif command -v mise >/dev/null 2>&1; then
+  MISE_BIN="$(command -v mise)"
+else
+  MISE_BIN=""
+fi
+
+export PATH="$HOME/.local/share/mise/shims:/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+export LINEAR_API_KEY
+export SYMPHONY_WORKSPACE_ROOT
+export SYMPHONY_SOURCE_REPO
+export SYMPHONY_CACERTFILE
+
+if [[ ! -x "$SYMPHONY_HOME/bin/symphony" ]]; then
+  cat >&2 <<MSG
+Symphony runtime not found at:
+  $SYMPHONY_HOME
+
+Install it first:
+  scripts/bootstrap-symphony-runtime
+MSG
+  exit 1
+fi
+
+mkdir -p "$SYMPHONY_WORKSPACE_ROOT" "$SYMPHONY_LOGS_ROOT"
+cd "$SYMPHONY_HOME"
+if [[ -n "$MISE_BIN" ]]; then
+  exec "$MISE_BIN" exec -- ./bin/symphony --i-understand-that-this-will-be-running-without-the-usual-guardrails --port "$SYMPHONY_PORT" --logs-root "$SYMPHONY_LOGS_ROOT" "$REPO_ROOT/WORKFLOW.md"
+fi
+
+exec ./bin/symphony --i-understand-that-this-will-be-running-without-the-usual-guardrails --port "$SYMPHONY_PORT" --logs-root "$SYMPHONY_LOGS_ROOT" "$REPO_ROOT/WORKFLOW.md"
