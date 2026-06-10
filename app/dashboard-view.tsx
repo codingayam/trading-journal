@@ -141,7 +141,7 @@ export function DashboardView({ trades }: { trades: DashboardTrade[] }) {
       </section>
 
       <section className="dashboard-grid">
-        <article className="card span-2" id="trades">
+        <article className="card span-2" id="dashboard-trades">
           <div className="card-heading">
             <div>
               <p className="eyebrow">Trades</p>

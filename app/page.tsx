@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppSidebar } from "@/app/app-sidebar";
-import { DashboardView } from "@/app/dashboard-view";
+import { TradingWorkspace } from "@/app/trading-workspace";
 import { getCurrentUserWithTradingData } from "@/lib/auth";
 import { serializeTrade } from "@/lib/trades";
 
@@ -25,7 +25,7 @@ export default async function Home() {
           </div>
         </header>
 
-        <DashboardView trades={user.trades.map(serializeTrade)} />
+        <TradingWorkspace initialTrades={user.trades.map(serializeTrade)} />
       </section>
     </main>
   );

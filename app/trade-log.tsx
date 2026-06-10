@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 
-type TradeRecord = {
+export type TradeRecord = {
   id: string;
   assetClass: string;
   symbol: string;
@@ -98,8 +98,13 @@ function sortTrades(trades: TradeRecord[]) {
   );
 }
 
-export function TradeLog({ initialTrades }: { initialTrades: TradeRecord[] }) {
-  const [trades, setTrades] = useState(() => sortTrades(initialTrades));
+export function TradeLog({
+  onTradesChange,
+  trades,
+}: {
+  onTradesChange: (trades: TradeRecord[]) => void;
+  trades: TradeRecord[];
+}) {
   const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<TradeFormState>(() => emptyTradeForm());
@@ -173,11 +178,11 @@ export function TradeLog({ initialTrades }: { initialTrades: TradeRecord[] }) {
     }
 
     const { trade } = (await response.json()) as { trade: TradeRecord };
-    setTrades((current) =>
+    onTradesChange(
       sortTrades(
         modalMode === "edit"
-          ? current.map((item) => (item.id === trade.id ? trade : item))
-          : [trade, ...current],
+          ? trades.map((item) => (item.id === trade.id ? trade : item))
+          : [trade, ...trades],
       ),
     );
     setBusy(false);
@@ -197,7 +202,7 @@ export function TradeLog({ initialTrades }: { initialTrades: TradeRecord[] }) {
       return;
     }
 
-    setTrades((current) => current.filter((trade) => trade.id !== tradeId));
+    onTradesChange(trades.filter((trade) => trade.id !== tradeId));
     setBusy(false);
   }
 
