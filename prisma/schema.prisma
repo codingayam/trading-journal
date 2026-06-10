@@ -78,12 +78,16 @@ model Trade {
   userId     String    @map("user_id")
   setupId    String?   @map("setup_id")
   sessionId  String?   @map("session_id")
+  assetClass String    @default("Stock") @map("asset_class")
   tradeDate  DateTime  @map("trade_date")
   symbol     String
   side       String
   quantity   Int
   entryPrice Decimal   @map("entry_price")
+  exitDate   DateTime? @map("exit_date")
   exitPrice  Decimal?  @map("exit_price")
+  fees       Decimal   @default(0)
+  status     String    @default("OPEN")
   grossPnl   Decimal?  @map("gross_pnl")
   notes      String?
   createdAt  DateTime  @default(now()) @map("created_at")
