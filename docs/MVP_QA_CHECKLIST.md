@@ -17,7 +17,6 @@ Use this checklist from a clean setup.
 - [ ] Dashboard: log back in as the demo user and confirm total P/L is `$91.00`, win rate is `50%`, two wins, two losses, and one open trade.
 - [ ] Trade creation: create a new open trade and confirm it appears in the Trade Log.
 - [ ] Trade editing: edit the new trade to `CLOSED` with an exit price and confirm return amount/percent update.
-- [ ] Setups: confirm Opening range breakout shows `2.79R` and Pullback to support shows `2.67R`.
 - [ ] Stats: open `/stats` and confirm closed trade stats exclude the open trade.
 - [ ] Calendar: confirm June 2026 totals show `$91.00` across four closed trades.
 
@@ -28,6 +27,7 @@ Use this checklist from a clean setup.
 - [ ] Confirm there are no accounts, balances, cash/active balance, deposits, withdrawals, transactions, or CSV export surfaces.
 - [ ] Confirm there are no profile/settings/default preferences/security/data-management tools.
 - [ ] Confirm there is no tag manager and no tag-based analytics.
+- [ ] Confirm there are no setup navigation, setup summary cards, setup planning forms, or setup risk/reward surfaces.
 
 ## Automation
 

@@ -1,7 +1,7 @@
 const previewRows = [
-  { symbol: "AAPL", setup: "Breakout", pnl: "+$420" },
-  { symbol: "NVDA", setup: "Pullback", pnl: "+$260" },
-  { symbol: "TSLA", setup: "Reversal", pnl: "-$90" },
+  { symbol: "AAPL", side: "Long", pnl: "+$420" },
+  { symbol: "NVDA", side: "Long", pnl: "+$260" },
+  { symbol: "TSLA", side: "Short", pnl: "-$90" },
 ];
 
 export function AuthBrandPanel() {
@@ -12,7 +12,7 @@ export function AuthBrandPanel() {
         <h2>Trading Journal for the people</h2>
         <p>
           A simple place to track trades, review decisions, and build better
-          habits without heavy setup or noisy account features.
+          habits without noisy account features.
         </p>
       </div>
 
@@ -40,7 +40,7 @@ export function AuthBrandPanel() {
           {previewRows.map((row) => (
             <div className="preview-row" key={row.symbol}>
               <strong>{row.symbol}</strong>
-              <span>{row.setup}</span>
+              <span>{row.side}</span>
               <em>{row.pnl}</em>
             </div>
           ))}

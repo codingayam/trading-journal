@@ -21,9 +21,7 @@ export default async function LoginPage() {
           <div className="auth-heading">
             <p className="eyebrow">Welcome back</p>
             <h1 id="login-title">Log in to your trading journal</h1>
-            <p>
-              Keep your setups and trade history in one lightweight workspace.
-            </p>
+            <p>Keep your trade history in one lightweight workspace.</p>
           </div>
           <AuthForm mode="login" />
         </div>

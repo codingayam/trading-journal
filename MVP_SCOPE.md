@@ -16,7 +16,6 @@ assets, logos, screenshots, proprietary copy, or unsupported marketing claims.
 - Stats: summary metric cards plus dense breakdown tables for comparable
   aggregate slices.
 - Calendar: calendar grid with a compact weekly summary area.
-- Setups: read-only setup summary cards with derived win rate and risk/reward.
 
 ## Explicitly Out Of Scope
 
@@ -27,13 +26,13 @@ assets, logos, screenshots, proprietary copy, or unsupported marketing claims.
   management flows beyond basic login/logout.
 - No settings, profile/settings, password/security, danger/data tools, or tag
   manager.
-- No setup-management flow.
+- No setup planning, setup summary, or setup-management flow.
 - No Google auth button or third-party auth.
 - No marketing site, pricing page, blog, public share pages, AI coach, CSV
   import, broker sync, or subscription/paywall flows.
 
 For validation clarity: this MVP must include no trade journal, no trade review,
-no accounts beyond auth, no settings, no setup-management flow, and no Google auth.
+no accounts beyond auth, no settings, no setup planning, and no Google auth.
 
 ## UI Reference Notes
 
@@ -85,7 +84,6 @@ Reference pages checked on 2026-06-10:
 - Stats page uses compact metric cards followed by dense tables.
 - Calendar section uses the same app shell with a large calendar area and compact
   weekly summary.
-- Setups section is read-only and limited to aggregate risk/reward validation.
 - Account/profile/settings/tag/security/data-tool screens and setup-management
   screens exist or are referenced in the source product, but are excluded from
   this MVP.

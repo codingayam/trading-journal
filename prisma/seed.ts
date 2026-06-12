@@ -24,54 +24,11 @@ async function main() {
     },
   });
 
-  await prisma.tradeSetup.upsert({
-    where: {
-      userId_name: {
-        userId: demoUserId,
-        name: "Opening range breakout",
-      },
-    },
-    create: {
-      id: "setup-orb",
-      userId: demoUserId,
-      name: "Opening range breakout",
-      description: "Momentum continuation after the first range is cleared.",
-      playbook: "Wait for range break, confirm volume, define invalidation.",
-    },
-    update: {
-      description: "Momentum continuation after the first range is cleared.",
-      playbook: "Wait for range break, confirm volume, define invalidation.",
-      isActive: true,
-    },
-  });
-
-  await prisma.tradeSetup.upsert({
-    where: {
-      userId_name: {
-        userId: demoUserId,
-        name: "Pullback to support",
-      },
-    },
-    create: {
-      id: "setup-pullback",
-      userId: demoUserId,
-      name: "Pullback to support",
-      description: "Trend-following entry after a controlled retracement.",
-      playbook: "Prefer higher low structure and tight risk.",
-    },
-    update: {
-      description: "Trend-following entry after a controlled retracement.",
-      playbook: "Prefer higher low structure and tight risk.",
-      isActive: true,
-    },
-  });
-
   await prisma.trade.upsert({
     where: { id: "trade-aapl-2026-06-08" },
     create: {
       id: "trade-aapl-2026-06-08",
       userId: demoUserId,
-      setupId: "setup-orb",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-08T14:05:00.000Z"),
       symbol: "AAPL",
@@ -85,7 +42,6 @@ async function main() {
       grossPnl: "95.00",
     },
     update: {
-      setupId: "setup-orb",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-08T14:05:00.000Z"),
       symbol: "AAPL",
@@ -105,7 +61,6 @@ async function main() {
     create: {
       id: "trade-msft-2026-06-08",
       userId: demoUserId,
-      setupId: "setup-orb",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-08T15:20:00.000Z"),
       symbol: "MSFT",
@@ -119,7 +74,6 @@ async function main() {
       grossPnl: "-34.00",
     },
     update: {
-      setupId: "setup-orb",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-08T15:20:00.000Z"),
       symbol: "MSFT",
@@ -139,7 +93,6 @@ async function main() {
     create: {
       id: "trade-tsm-2026-06-09",
       userId: demoUserId,
-      setupId: "setup-pullback",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-09T02:15:00.000Z"),
       symbol: "TSM",
@@ -153,7 +106,6 @@ async function main() {
       grossPnl: "48.00",
     },
     update: {
-      setupId: "setup-pullback",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-09T02:15:00.000Z"),
       symbol: "TSM",
@@ -173,7 +125,6 @@ async function main() {
     create: {
       id: "trade-meta-2026-06-09",
       userId: demoUserId,
-      setupId: "setup-pullback",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-09T13:40:00.000Z"),
       symbol: "META",
@@ -187,7 +138,6 @@ async function main() {
       grossPnl: "-18.00",
     },
     update: {
-      setupId: "setup-pullback",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-09T13:40:00.000Z"),
       symbol: "META",
@@ -207,7 +157,6 @@ async function main() {
     create: {
       id: "trade-nvda-2026-06-10",
       userId: demoUserId,
-      setupId: "setup-pullback",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-10T14:30:00.000Z"),
       symbol: "NVDA",
@@ -218,7 +167,6 @@ async function main() {
       status: "OPEN",
     },
     update: {
-      setupId: "setup-pullback",
       assetClass: "Stock",
       tradeDate: new Date("2026-06-10T14:30:00.000Z"),
       symbol: "NVDA",
