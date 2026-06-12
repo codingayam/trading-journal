@@ -153,14 +153,8 @@ export async function getCurrentUserWithTradingData() {
   return prisma.user.findUnique({
     where: { id: currentUser.id },
     include: {
-      setups: {
-        orderBy: { name: "asc" },
-      },
       trades: {
         orderBy: { tradeDate: "desc" },
-        include: {
-          setup: true,
-        },
       },
     },
   });

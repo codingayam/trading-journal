@@ -462,8 +462,7 @@ tbody tr:hover {
 }
 
 .bar-chart,
-.stack-list,
-.setup-grid {
+.stack-list {
   display: grid;
   gap: 12px;
 }
@@ -649,70 +648,6 @@ tbody tr:hover {
 .list-row strong,
 .list-row span {
   overflow-wrap: anywhere;
-}
-
-.setup-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.setup-panel {
-  background: var(--surface-raised);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  display: grid;
-  gap: 14px;
-  padding: 14px;
-}
-
-.setup-heading {
-  align-items: flex-start;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-}
-
-.setup-heading div {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-
-.setup-heading p,
-.setup-playbook,
-.setup-metrics dt {
-  color: var(--muted);
-}
-
-.setup-metrics {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 0;
-}
-
-.setup-metrics div {
-  background: #151a19;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  display: grid;
-  gap: 4px;
-  padding: 10px;
-}
-
-.setup-metrics dt {
-  font-size: 0.72rem;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.setup-metrics dd {
-  font-size: 1rem;
-  font-weight: 900;
-  margin: 0;
-}
-
-.setup-playbook {
-  line-height: 1.5;
 }
 
 .auth-shell {
@@ -1418,7 +1353,7 @@ tbody tr:hover {
   }
 
   .side-nav {
-    grid-template-columns: repeat(5, minmax(104px, 1fr));
+    grid-template-columns: repeat(4, minmax(104px, 1fr));
     overflow-x: auto;
   }
 
@@ -1430,10 +1365,6 @@ tbody tr:hover {
 
   .span-2 {
     grid-column: 1 / -1;
-  }
-
-  .setup-grid {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -1454,7 +1385,6 @@ tbody tr:hover {
 
   .workspace-header,
   .list-row,
-  .setup-heading,
   .card-heading {
     align-items: flex-start;
     flex-direction: column;

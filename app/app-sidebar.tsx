@@ -1,14 +1,13 @@
 import { LogoutButton } from "@/app/logout-button";
 
 type AppSidebarProps = {
-  current: "Dashboard" | "Trades" | "Setups" | "Stats" | "Calendar";
+  current: "Dashboard" | "Trades" | "Stats" | "Calendar";
   displayName: string;
 };
 
 const navItems = [
   { label: "Dashboard", href: "/" },
   { label: "Trades", href: "/#trades" },
-  { label: "Setups", href: "/#setups" },
   { label: "Stats", href: "/stats" },
   { label: "Calendar", href: "/#calendar" },
 ] as const;

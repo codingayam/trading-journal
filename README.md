@@ -41,6 +41,6 @@ npm run db:seed
 npm run db:reset
 ```
 
-`db:seed` is idempotent and upserts one demo user, two setups, four closed
-trades, and one open trade. `db:reset` removes the local SQLite file, reapplies
+`db:seed` is idempotent and upserts one demo user, four closed trades, and one
+open trade. `db:reset` removes the local SQLite file, reapplies
 the migration, and reseeds the demo data.

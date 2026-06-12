@@ -11,7 +11,6 @@ const prisma = new PrismaClient();
 async function resetDb() {
   await prisma.authSession.deleteMany();
   await prisma.trade.deleteMany();
-  await prisma.tradeSetup.deleteMany();
   await prisma.user.deleteMany();
 }
 
