@@ -1,4 +1,5 @@
 import { deriveExecutionSnapshot, type ParsedExecutionInput } from "./trades";
+import type { DashboardOpenPositionPnl } from "./dashboard";
 
 type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
@@ -50,6 +51,21 @@ export type LatestEodQuoteResult =
 
 export type LatestEodQuoteProvider = {
   getLatestEodQuote(symbol: string): Promise<LatestEodQuoteResult>;
+};
+
+export type OpenPositionPnlTradeInput = {
+  id: string;
+  symbol: string;
+  side: string;
+  status: string;
+  remainingQuantity: number;
+  executions: Array<{
+    action: string;
+    executedAt: string | Date;
+    quantity: number;
+    price: number | string;
+    fees: number | string;
+  }>;
 };
 
 // Server-side Yahoo Finance compatible source. This uses the public chart
@@ -250,6 +266,54 @@ export function calculateOpenPositionPnl(input: {
 
 export const latestEodQuoteProvider = new YahooChartEodQuoteProvider();
 
+export async function getOpenPositionPnlForTrades(
+  trades: OpenPositionPnlTradeInput[],
+  quoteProvider: LatestEodQuoteProvider = latestEodQuoteProvider,
+): Promise<DashboardOpenPositionPnl[]> {
+  const openTrades = trades.filter((trade) => trade.status === "OPEN" && trade.remainingQuantity > 0);
+
+  return Promise.all(
+    openTrades.map(async (trade) => {
+      const quoteResult = await quoteProvider.getLatestEodQuote(trade.symbol);
+      const result = calculateOpenPositionPnl({
+        symbol: trade.symbol,
+        side: trade.side,
+        executions: trade.executions.map(normalizeExecutionInput),
+        quoteResult,
+      });
+
+      return {
+        tradeId: trade.id,
+        symbol: result.symbol,
+        status: result.status,
+        side: result.side,
+        remainingQuantity: result.remainingQuantity,
+        averageEntryPrice: result.status === "available" ? result.averageEntryPrice : undefined,
+        latestPrice: result.latestPrice,
+        unrealizedPnl: result.unrealizedPnl,
+        quoteAsOf: result.status === "available" ? result.quote.asOf : undefined,
+        message: result.status === "unavailable" ? result.message : undefined,
+      };
+    }),
+  );
+}
+
 function roundMoney(value: number) {
   return Number(value.toFixed(2));
+}
+
+function normalizeExecutionInput(
+  execution: OpenPositionPnlTradeInput["executions"][number],
+): ParsedExecutionInput {
+  return {
+    action: execution.action === "SELL" ? "SELL" : "BUY",
+    executedAt: execution.executedAt instanceof Date ? execution.executedAt : new Date(execution.executedAt),
+    quantity: execution.quantity,
+    price: decimalString(execution.price),
+    fees: decimalString(execution.fees),
+  };
+}
+
+function decimalString(value: number | string) {
+  return Number(value).toFixed(2);
 }

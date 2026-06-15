@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import {
   YahooChartEodQuoteProvider,
   calculateOpenPositionPnl,
+  getOpenPositionPnlForTrades,
   parseYahooChartQuote,
+  type LatestEodQuoteProvider,
   type LatestEodQuoteResult,
 } from "../lib/market-data";
 import type { ParsedExecutionInput } from "../lib/trades";
@@ -88,6 +90,85 @@ async function run() {
     reason: "no_eod_price",
     message: "No usable latest daily close was returned for this symbol.",
   });
+
+  const providerCalls: string[] = [];
+  const fakeProvider: LatestEodQuoteProvider = {
+    async getLatestEodQuote(symbol) {
+      providerCalls.push(symbol);
+
+      if (symbol === "MISSING") {
+        return {
+          status: "unavailable",
+          symbol,
+          reason: "not_found",
+          message: "Yahoo Finance chart endpoint returned HTTP 404.",
+        };
+      }
+
+      return quote(symbol, symbol === "AAPL" ? 22 : 80);
+    },
+  };
+
+  const openPnlRows = await getOpenPositionPnlForTrades(
+    [
+      {
+        id: "open-aapl",
+        symbol: "AAPL",
+        side: "LONG",
+        status: "OPEN",
+        remainingQuantity: 8,
+        executions: [
+          execution({ action: "BUY", executedAt: "2026-06-12T14:00:00.000Z", quantity: 10, price: 20 }),
+          execution({ action: "SELL", executedAt: "2026-06-12T15:00:00.000Z", quantity: 2, price: 21 }),
+        ],
+      },
+      {
+        id: "open-missing",
+        symbol: "MISSING",
+        side: "LONG",
+        status: "OPEN",
+        remainingQuantity: 3,
+        executions: [execution({ action: "BUY", executedAt: "2026-06-12T14:00:00.000Z", quantity: 3, price: 10 })],
+      },
+      {
+        id: "closed-msft",
+        symbol: "MSFT",
+        side: "LONG",
+        status: "CLOSED",
+        remainingQuantity: 0,
+        executions: [execution({ action: "BUY", executedAt: "2026-06-12T14:00:00.000Z", quantity: 1, price: 20 })],
+      },
+    ],
+    fakeProvider,
+  );
+
+  assert.deepEqual(providerCalls, ["AAPL", "MISSING"]);
+  assert.deepEqual(openPnlRows, [
+    {
+      tradeId: "open-aapl",
+      symbol: "AAPL",
+      status: "available",
+      side: "LONG",
+      remainingQuantity: 8,
+      averageEntryPrice: 20,
+      latestPrice: 22,
+      unrealizedPnl: 16,
+      quoteAsOf: "2026-06-12T13:30:00.000Z",
+      message: undefined,
+    },
+    {
+      tradeId: "open-missing",
+      symbol: "MISSING",
+      status: "unavailable",
+      side: "LONG",
+      remainingQuantity: 3,
+      averageEntryPrice: undefined,
+      latestPrice: null,
+      unrealizedPnl: null,
+      quoteAsOf: undefined,
+      message: "Yahoo Finance chart endpoint returned HTTP 404.",
+    },
+  ]);
 
   const parsedQuote = parseYahooChartQuote("AAPL", {
     chart: {
