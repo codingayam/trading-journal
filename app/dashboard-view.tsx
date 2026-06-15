@@ -37,18 +37,6 @@ function signedPercent(value: number) {
   return value < 0 ? `-${formatted}` : formatted;
 }
 
-function shortDate(value: string | null) {
-  if (!value) {
-    return "Open";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
-}
-
 function metricTone(value: number) {
   if (value === 0) {
     return undefined;
@@ -81,6 +69,33 @@ function chartPath(
     .join(" ");
 }
 
+function chartPointPosition(
+  points: Array<{ absoluteValue: number; percentValue: number }>,
+  index: number,
+  mode: ChartMode,
+  bounds: { min: number; max: number },
+) {
+  const range = Math.max(1, bounds.max - bounds.min);
+  const point = points[index];
+
+  return {
+    x: points.length === 1 ? 50 : (index / (points.length - 1)) * 100,
+    y: 92 - ((chartValue(point, mode) - bounds.min) / range) * 74,
+  };
+}
+
+function chartEndpoint(
+  points: Array<{ absoluteValue: number; percentValue: number }>,
+  mode: ChartMode,
+  bounds: { min: number; max: number },
+) {
+  if (points.length === 0) {
+    return null;
+  }
+
+  return chartPointPosition(points, points.length - 1, mode, bounds);
+}
+
 function chartBounds(
   points: Array<{ absoluteValue: number; percentValue: number }>,
   mode: ChartMode,
@@ -94,18 +109,6 @@ function chartBounds(
 
 function formatChartValue(value: number, mode: ChartMode) {
   return mode === "absolute" ? signedMoney(value) : signedPercent(value);
-}
-
-function formatQuoteDate(value: string | null) {
-  if (!value) {
-    return "Latest EOD";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
 }
 
 function EmptyState() {
@@ -142,6 +145,14 @@ export function DashboardView({
   const bounds = chartBounds(chartPoints, chartMode);
   const closedLinePath = chartPath(chartModel.closed, chartMode, bounds);
   const openLinePath = chartPath(chartModel.open, chartMode, bounds);
+  const closedEndpoint = chartEndpoint(chartModel.closed, chartMode, bounds);
+  const openEndpoint = chartEndpoint(chartModel.open, chartMode, bounds);
+  const closedCumulativeValue = chartModel.closed.at(-1)
+    ? chartValue(chartModel.closed.at(-1)!, chartMode)
+    : 0;
+  const openCumulativeValue = chartModel.open.at(-1)
+    ? chartValue(chartModel.open.at(-1)!, chartMode)
+    : 0;
   const chartHasData = chartModel.closed.length > 0 || chartModel.open.length > 0;
   const yAxisLabel = chartMode === "absolute" ? "USD P&L" : "Return %";
   const quoteStateLabel =
@@ -233,11 +244,37 @@ export function DashboardView({
                   <strong>{quoteStateLabel}</strong>
                 </div>
               </div>
-              <svg role="img" viewBox="0 0 100 100" preserveAspectRatio="none">
-                <polyline className="equity-baseline" points="0,92 100,92" />
-                {closedLinePath ? <polyline className="equity-line equity-line-closed" points={closedLinePath} /> : null}
-                {openLinePath ? <polyline className="equity-line equity-line-open" points={openLinePath} /> : null}
-              </svg>
+              <div className="equity-chart-plot">
+                <svg role="img" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <polyline className="equity-baseline" points="0,92 100,92" />
+                  {closedLinePath ? (
+                    <polyline className="equity-line equity-line-closed" points={closedLinePath} />
+                  ) : null}
+                  {openLinePath ? <polyline className="equity-line equity-line-open" points={openLinePath} /> : null}
+                </svg>
+                {closedEndpoint ? (
+                  <div
+                    className="equity-chart-callout equity-chart-callout-closed"
+                    style={{ left: `${closedEndpoint.x}%`, top: `${closedEndpoint.y}%` }}
+                  >
+                    <span>Closed cumulative</span>
+                    <strong className={metricTone(closedCumulativeValue)}>
+                      {formatChartValue(closedCumulativeValue, chartMode)}
+                    </strong>
+                  </div>
+                ) : null}
+                {openEndpoint ? (
+                  <div
+                    className="equity-chart-callout equity-chart-callout-open"
+                    style={{ left: `${openEndpoint.x}%`, top: `${openEndpoint.y}%` }}
+                  >
+                    <span>Open cumulative</span>
+                    <strong className={metricTone(openCumulativeValue)}>
+                      {formatChartValue(openCumulativeValue, chartMode)}
+                    </strong>
+                  </div>
+                ) : null}
+              </div>
               <div className="equity-legend" aria-label="Equity chart series">
                 <span>
                   <i className="legend-swatch legend-closed" />
@@ -249,31 +286,6 @@ export function DashboardView({
                     Open positions
                   </span>
                 ) : null}
-              </div>
-              <div className="equity-points">
-                {chartModel.closed.map((point) => (
-                  <div key={point.id}>
-                    <span>{shortDate(point.date)} / {point.symbol}</span>
-                    <strong className={metricTone(point.pnl)}>
-                      {formatChartValue(chartMode === "absolute" ? point.pnl : point.pointPercent, chartMode)}
-                    </strong>
-                    <em>{formatChartValue(chartValue(point, chartMode), chartMode)} closed curve</em>
-                  </div>
-                ))}
-                {chartModel.open.map((point) => (
-                  <div className="open-equity-point" key={point.id}>
-                    <span>
-                      {point.symbol} / {formatQuoteDate(point.quoteAsOf)}
-                    </span>
-                    <strong className={metricTone(point.pnl)}>
-                      {formatChartValue(chartMode === "absolute" ? point.pnl : point.pointPercent, chartMode)}
-                    </strong>
-                    <em>
-                      {formatChartValue(chartValue(point, chartMode), chartMode)} open curve at{" "}
-                      {signedMoney(point.latestPrice)}
-                    </em>
-                  </div>
-                ))}
               </div>
             </div>
           ) : (

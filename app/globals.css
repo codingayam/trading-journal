@@ -653,12 +653,53 @@ tbody tr:hover {
   font-size: 0.9rem;
 }
 
-.equity-chart svg {
+.equity-chart-plot {
+  min-height: 220px;
+  position: relative;
+}
+
+.equity-chart-plot svg {
   background: #111514;
   border: 1px solid #26302d;
   border-radius: 8px;
   height: 220px;
   width: 100%;
+}
+
+.equity-chart-callout {
+  background: rgba(17, 21, 20, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+  display: grid;
+  gap: 2px;
+  max-width: 160px;
+  min-width: 132px;
+  padding: 8px 10px;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-100%, -50%);
+}
+
+.equity-chart-callout span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.equity-chart-callout strong {
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+
+.equity-chart-callout-closed {
+  border-color: rgba(76, 201, 166, 0.5);
+}
+
+.equity-chart-callout-open {
+  border-color: rgba(224, 184, 80, 0.55);
+  transform: translate(-100%, 8px);
 }
 
 .equity-baseline {
@@ -712,32 +753,6 @@ tbody tr:hover {
 
 .legend-open {
   background: var(--warning);
-}
-
-.equity-points {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-}
-
-.equity-points div {
-  background: var(--surface-raised);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  display: grid;
-  gap: 5px;
-  padding: 10px;
-}
-
-.equity-points .open-equity-point {
-  border-color: rgba(224, 184, 80, 0.45);
-}
-
-.equity-points span,
-.equity-points em {
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-style: normal;
 }
 
 .quote-state-panel {
