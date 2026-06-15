@@ -29,14 +29,6 @@ function signedMoney(value: number) {
   return value < 0 ? `-${formatted}` : formatted;
 }
 
-function percent(value: number | null) {
-  if (value === null) {
-    return "Open";
-  }
-
-  return `${value.toFixed(2)}%`;
-}
-
 function shortDate(value: string | null) {
   if (!value) {
     return "Open";
@@ -47,14 +39,6 @@ function shortDate(value: string | null) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(value));
-}
-
-function pnlClass(value: number | null) {
-  if (value === null || value === 0) {
-    return "muted-cell";
-  }
-
-  return value > 0 ? "positive" : "negative";
 }
 
 function metricTone(value: number) {
@@ -118,7 +102,7 @@ export function DashboardView({ trades }: { trades: DashboardTrade[] }) {
 
   return (
     <>
-      <section className="filter-bar" aria-label="Quick date filters">
+      <section className="filter-bar dashboard-filter-slot" aria-label="Quick date filters">
         {filters.map((filter) => (
           <button
             aria-pressed={activeFilter === filter.key}
@@ -131,7 +115,7 @@ export function DashboardView({ trades }: { trades: DashboardTrade[] }) {
         ))}
       </section>
 
-      <section className="metric-grid dashboard-metrics" aria-label="Trading summary">
+      <section className="metric-grid dashboard-metrics dashboard-kpi-slot" aria-label="Trading summary">
         {metrics.map((metric) => (
           <article className="card metric-card compact-metric" key={metric.label}>
             <span>{metric.label}</span>
@@ -140,61 +124,8 @@ export function DashboardView({ trades }: { trades: DashboardTrade[] }) {
         ))}
       </section>
 
-      <section className="dashboard-grid">
-        <article className="card span-2" id="dashboard-trades">
-          <div className="card-heading">
-            <div>
-              <p className="eyebrow">Trades</p>
-              <h2>Recent Performance</h2>
-            </div>
-            <span className="badge badge-neutral">{filteredTrades.length} shown</span>
-          </div>
-
-          {filteredTrades.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="table-wrap dense-table-wrap">
-              <table className="dense-trade-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Symbol</th>
-                    <th>Side</th>
-                    <th>Quantity</th>
-                    <th>Entry</th>
-                    <th>Exit</th>
-                    <th>PnL</th>
-                    <th>PnL %</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTrades.map((trade) => (
-                    <tr key={trade.id}>
-                      <td>{shortDate(trade.entryDateTime)}</td>
-                      <td className="symbol">{trade.symbol}</td>
-                      <td>
-                        <span className={trade.side === "LONG" ? "badge badge-success" : "badge badge-danger"}>
-                          {trade.side}
-                        </span>
-                      </td>
-                      <td>{trade.quantity}</td>
-                      <td>{moneyFormatter.format(trade.entryPrice)}</td>
-                      <td>{trade.exitPrice === null ? "Open" : moneyFormatter.format(trade.exitPrice)}</td>
-                      <td className={pnlClass(trade.returnAmount)}>
-                        {trade.returnAmount === null ? "Open" : signedMoney(trade.returnAmount)}
-                      </td>
-                      <td className={pnlClass(trade.returnAmount)}>
-                        {percent(trade.returnPercent)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </article>
-
-        <article className="card span-2">
+      <section className="dashboard-grid dashboard-equity-grid">
+        <article className="card span-2 dashboard-equity-slot" id="dashboard-equity">
           <div className="card-heading">
             <div>
               <p className="eyebrow">Equity</p>
