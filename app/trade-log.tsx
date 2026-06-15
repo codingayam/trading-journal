@@ -112,7 +112,7 @@ export function TradeLog({
   const [busy, setBusy] = useState(false);
 
   const openTrades = useMemo(
-    () => trades.filter((trade) => trade.returnAmount === null).length,
+    () => trades.filter((trade) => trade.status === "OPEN").length,
     [trades],
   );
 

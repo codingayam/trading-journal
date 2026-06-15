@@ -9,6 +9,7 @@ const dbPath = "prisma/stats-test.db";
 const prisma = new PrismaClient();
 
 async function resetDb() {
+  await prisma.tradeExecution.deleteMany();
   await prisma.authSession.deleteMany();
   await prisma.trade.deleteMany();
   await prisma.user.deleteMany();
