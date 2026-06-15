@@ -54,7 +54,8 @@ export type LatestEodQuoteProvider = {
 
 // Server-side Yahoo Finance compatible source. This uses the public chart
 // endpoint through Node/Next fetch so the first pass needs no adapter package,
-// API key, paid provider, or local quote cache.
+// API key, paid provider, or local quote cache. Each call fetches on demand;
+// there is no stored snapshot or background market-hours polling in this pass.
 export class YahooChartEodQuoteProvider implements LatestEodQuoteProvider {
   private readonly fetcher: FetchLike;
   private readonly baseUrl: string;

@@ -1,6 +1,17 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useMemo, useState } from "react";
+
+type ExecutionAction = "BUY" | "SELL";
+
+export type TradeExecutionRecord = {
+  id?: string;
+  action: string;
+  executedAt: string;
+  quantity: number;
+  price: number;
+  fees: number;
+};
 
 export type TradeRecord = {
   id: string;
@@ -8,6 +19,7 @@ export type TradeRecord = {
   symbol: string;
   side: string;
   quantity: number;
+  remainingQuantity: number;
   entryDateTime: string;
   entryPrice: number;
   exitDateTime: string | null;
@@ -16,22 +28,29 @@ export type TradeRecord = {
   status: string;
   returnAmount: number | null;
   returnPercent: number | null;
+  executions: TradeExecutionRecord[];
 };
 
-type TradeFormState = {
+export type TradeFormState = {
   assetClass: string;
   symbol: string;
   side: string;
   quantity: string;
   entryDateTime: string;
   entryPrice: string;
-  exitDateTime: string;
-  exitPrice: string;
   fees: string;
-  status: string;
+};
+
+export type SellFormState = {
+  mode: "partial" | "full";
+  quantity: string;
+  executedAt: string;
+  price: string;
+  fees: string;
 };
 
 const assetClasses = ["Stock", "Option", "Crypto", "Forex", "Futures", "Other"];
+export const tradesPerPage = 10;
 
 const emptyTradeForm = (): TradeFormState => ({
   assetClass: "Stock",
@@ -40,10 +59,7 @@ const emptyTradeForm = (): TradeFormState => ({
   quantity: "1",
   entryDateTime: dateTimeLocalValue(new Date()),
   entryPrice: "",
-  exitDateTime: "",
-  exitPrice: "",
   fees: "0",
-  status: "OPEN",
 });
 
 function dateTimeLocalValue(date: Date) {
@@ -76,18 +92,31 @@ function shortDate(value: string | null) {
   }).format(new Date(value));
 }
 
+function displayDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function percent(value: number | null) {
+  return value === null ? "Open" : `${value}%`;
+}
+
 function formFromTrade(trade: TradeRecord): TradeFormState {
+  const opening = openingExecution(trade);
+
   return {
     assetClass: trade.assetClass,
     symbol: trade.symbol,
     side: trade.side,
-    quantity: String(trade.quantity),
-    entryDateTime: dateTimeLocalValue(new Date(trade.entryDateTime)),
-    entryPrice: String(trade.entryPrice),
-    exitDateTime: trade.exitDateTime ? dateTimeLocalValue(new Date(trade.exitDateTime)) : "",
-    exitPrice: trade.exitPrice === null ? "" : String(trade.exitPrice),
-    fees: String(trade.fees),
-    status: trade.status,
+    quantity: String(opening?.quantity ?? trade.quantity),
+    entryDateTime: dateTimeLocalValue(new Date(opening?.executedAt ?? trade.entryDateTime)),
+    entryPrice: String(opening?.price ?? trade.entryPrice),
+    fees: String(opening?.fees ?? trade.fees),
   };
 }
 
@@ -98,6 +127,92 @@ function sortTrades(trades: TradeRecord[]) {
   );
 }
 
+export function pageCountForTrades(totalTrades: number) {
+  return Math.max(1, Math.ceil(totalTrades / tradesPerPage));
+}
+
+export function clampTradePage(page: number, totalTrades: number) {
+  return Math.min(Math.max(page, 1), pageCountForTrades(totalTrades));
+}
+
+export function paginatedTrades(trades: TradeRecord[], page: number) {
+  const safePage = clampTradePage(page, trades.length);
+  const start = (safePage - 1) * tradesPerPage;
+  return trades.slice(start, start + tradesPerPage);
+}
+
+export function openingActionForSide(side: string): ExecutionAction {
+  return side === "SHORT" ? "SELL" : "BUY";
+}
+
+export function reducingActionForSide(side: string): ExecutionAction {
+  return side === "SHORT" ? "BUY" : "SELL";
+}
+
+function openingExecution(trade: TradeRecord) {
+  const action = openingActionForSide(trade.side);
+  return trade.executions.find((execution) => execution.action === action);
+}
+
+function fallbackOpeningExecution(trade: TradeRecord): TradeExecutionRecord {
+  return {
+    action: openingActionForSide(trade.side),
+    executedAt: trade.entryDateTime,
+    quantity: trade.quantity,
+    price: trade.entryPrice,
+    fees: 0,
+  };
+}
+
+export function createOpeningExecutionPayload(form: TradeFormState) {
+  return {
+    action: openingActionForSide(form.side),
+    executedAt: form.entryDateTime,
+    quantity: Number(form.quantity),
+    price: Number(form.entryPrice),
+    fees: Number(form.fees || 0),
+  };
+}
+
+export function replaceOpeningExecutionPayload(trade: TradeRecord, form: TradeFormState) {
+  const openingAction = openingActionForSide(trade.side);
+  const executions = trade.executions.length > 0 ? trade.executions : [fallbackOpeningExecution(trade)];
+  let replaced = false;
+
+  const nextExecutions = executions.map((execution) => {
+    if (!replaced && execution.action === openingAction) {
+      replaced = true;
+      return {
+        ...execution,
+        executedAt: form.entryDateTime,
+        quantity: Number(form.quantity),
+        price: Number(form.entryPrice),
+        fees: Number(form.fees || 0),
+      };
+    }
+
+    return execution;
+  });
+
+  return replaced ? nextExecutions : [createOpeningExecutionPayload(form), ...nextExecutions];
+}
+
+export function appendSellExecutionPayload(trade: TradeRecord, form: SellFormState) {
+  const quantity = form.mode === "full" ? trade.remainingQuantity : Number(form.quantity);
+  const executions = trade.executions.length > 0 ? trade.executions : [fallbackOpeningExecution(trade)];
+
+  return [
+    ...executions,
+    {
+      action: reducingActionForSide(trade.side),
+      executedAt: form.executedAt,
+      quantity,
+      price: Number(form.price),
+      fees: Number(form.fees || 0),
+    },
+  ];
+}
+
 export function TradeLog({
   onTradesChange,
   trades,
@@ -105,35 +220,82 @@ export function TradeLog({
   onTradesChange: (trades: TradeRecord[]) => void;
   trades: TradeRecord[];
 }) {
-  const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [modalMode, setModalMode] = useState<"buy" | "edit" | "sell" | null>(null);
+  const [selectedTradeId, setSelectedTradeId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState<TradeFormState>(() => emptyTradeForm());
+  const [sellForm, setSellForm] = useState<SellFormState>(() => ({
+    mode: "partial",
+    quantity: "1",
+    executedAt: dateTimeLocalValue(new Date()),
+    price: "",
+    fees: "0",
+  }));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const selectedTrade = useMemo(
+    () => trades.find((trade) => trade.id === selectedTradeId) ?? null,
+    [selectedTradeId, trades],
+  );
   const openTrades = useMemo(
     () => trades.filter((trade) => trade.status === "OPEN").length,
     [trades],
   );
+  const pageCount = pageCountForTrades(trades.length);
+  const visibleTrades = useMemo(() => paginatedTrades(trades, page), [page, trades]);
 
-  function openCreateModal() {
+  useEffect(() => {
+    setPage((current) => clampTradePage(current, trades.length));
+  }, [trades.length]);
+
+  function openBuyModal() {
     setError(null);
-    setEditingId(null);
+    setSelectedTradeId(null);
     setForm(emptyTradeForm());
-    setModalMode("create");
+    setModalMode("buy");
+  }
+
+  function openDetail(trade: TradeRecord) {
+    if (!busy) {
+      setError(null);
+      setSelectedTradeId(trade.id);
+      setModalMode(null);
+    }
   }
 
   function openEditModal(trade: TradeRecord) {
     setError(null);
-    setEditingId(trade.id);
+    setSelectedTradeId(trade.id);
     setForm(formFromTrade(trade));
     setModalMode("edit");
+  }
+
+  function openSellModal(trade: TradeRecord) {
+    setError(null);
+    setSelectedTradeId(trade.id);
+    setSellForm({
+      mode: trade.remainingQuantity > 1 ? "partial" : "full",
+      quantity: String(Math.min(1, trade.remainingQuantity)),
+      executedAt: dateTimeLocalValue(new Date()),
+      price: "",
+      fees: "0",
+    });
+    setModalMode("sell");
   }
 
   function closeModal() {
     if (!busy) {
       setModalMode(null);
-      setEditingId(null);
+      setError(null);
+    }
+  }
+
+  function closeDetail() {
+    if (!busy) {
+      setSelectedTradeId(null);
+      setModalMode(null);
+      setError(null);
     }
   }
 
@@ -141,34 +303,68 @@ export function TradeLog({
     setForm((current) => ({
       ...current,
       [field]: value,
-      ...(field === "status" && value === "OPEN"
-        ? { exitDateTime: "", exitPrice: "" }
+    }));
+  }
+
+  function updateSellField(field: keyof SellFormState, value: string) {
+    setSellForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === "mode" && value === "full" && selectedTrade
+        ? { quantity: String(selectedTrade.remainingQuantity) }
         : {}),
     }));
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  function updateTradeInList(trade: TradeRecord) {
+    onTradesChange(sortTrades(trades.map((item) => (item.id === trade.id ? trade : item))));
+    setSelectedTradeId(trade.id);
+  }
+
+  function removeTradeFromList(tradeId: string) {
+    onTradesChange(trades.filter((trade) => trade.id !== tradeId));
+    if (selectedTradeId === tradeId) {
+      closeDetail();
+    }
+  }
+
+  function rowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, trade: TradeRecord) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openDetail(trade);
+    }
+  }
+
+  async function submitTrade(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError(null);
 
-    const payload = {
-      ...form,
-      quantity: Number(form.quantity),
-      entryPrice: Number(form.entryPrice),
-      exitDateTime: form.exitDateTime || null,
-      exitPrice: form.exitPrice === "" ? null : Number(form.exitPrice),
-      fees: Number(form.fees || 0),
-    };
+    const editingTrade = modalMode === "edit" ? selectedTrade : null;
+    const payload =
+      modalMode === "edit" && editingTrade
+        ? {
+            assetClass: form.assetClass,
+            symbol: form.symbol,
+            executions: replaceOpeningExecutionPayload(editingTrade, form),
+          }
+        : {
+            assetClass: form.assetClass,
+            symbol: form.symbol,
+            side: form.side,
+            quantity: Number(form.quantity),
+            entryDateTime: form.entryDateTime,
+            entryPrice: Number(form.entryPrice),
+            fees: Number(form.fees || 0),
+            status: "OPEN",
+            executions: [createOpeningExecutionPayload(form)],
+          };
 
-    const response = await fetch(
-      modalMode === "edit" && editingId ? `/api/trades/${editingId}` : "/api/trades",
-      {
-        method: modalMode === "edit" ? "PATCH" : "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      },
-    );
+    const response = await fetch(editingTrade ? `/api/trades/${editingTrade.id}` : "/api/trades", {
+      method: editingTrade ? "PATCH" : "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
     if (!response.ok) {
       const body = await response.json().catch(() => null);
@@ -178,16 +374,53 @@ export function TradeLog({
     }
 
     const { trade } = (await response.json()) as { trade: TradeRecord };
-    onTradesChange(
-      sortTrades(
-        modalMode === "edit"
-          ? trades.map((item) => (item.id === trade.id ? trade : item))
-          : [trade, ...trades],
-      ),
-    );
+    if (editingTrade) {
+      updateTradeInList(trade);
+    } else {
+      onTradesChange(sortTrades([trade, ...trades]));
+      setSelectedTradeId(trade.id);
+      setPage(1);
+    }
     setBusy(false);
     setModalMode(null);
-    setEditingId(null);
+  }
+
+  async function submitSell(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedTrade) {
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+
+    const quantity =
+      sellForm.mode === "full" ? selectedTrade.remainingQuantity : Number(sellForm.quantity);
+    if (!Number.isInteger(quantity) || quantity <= 0 || quantity > selectedTrade.remainingQuantity) {
+      setError(`Sell quantity must be between 1 and ${selectedTrade.remainingQuantity}.`);
+      setBusy(false);
+      return;
+    }
+
+    const response = await fetch(`/api/trades/${selectedTrade.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        executions: appendSellExecutionPayload(selectedTrade, sellForm),
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      setError(body?.errors?.join(" ") ?? body?.error ?? "Sell could not be recorded.");
+      setBusy(false);
+      return;
+    }
+
+    const { trade } = (await response.json()) as { trade: TradeRecord };
+    updateTradeInList(trade);
+    setBusy(false);
+    setModalMode(null);
   }
 
   async function deleteTrade(tradeId: string) {
@@ -202,7 +435,7 @@ export function TradeLog({
       return;
     }
 
-    onTradesChange(trades.filter((trade) => trade.id !== tradeId));
+    removeTradeFromList(tradeId);
     setBusy(false);
   }
 
@@ -215,8 +448,8 @@ export function TradeLog({
         </div>
         <div className="trade-log-actions">
           <span className="badge badge-neutral">{openTrades} open</span>
-          <button className="primary-button" onClick={openCreateModal} type="button">
-            New Trade
+          <button className="primary-button" onClick={openBuyModal} type="button">
+            Add Trade / Buy
           </button>
         </div>
       </div>
@@ -230,6 +463,7 @@ export function TradeLog({
               <th>Asset</th>
               <th>Side</th>
               <th>Qty</th>
+              <th>Open</th>
               <th>Entry</th>
               <th>Exit</th>
               <th>Return</th>
@@ -238,8 +472,16 @@ export function TradeLog({
             </tr>
           </thead>
           <tbody>
-            {trades.map((trade) => (
-              <tr key={trade.id}>
+            {visibleTrades.map((trade) => (
+              <tr
+                aria-label={`Open ${trade.symbol} trade details`}
+                className="clickable-row"
+                key={trade.id}
+                onClick={() => openDetail(trade)}
+                onKeyDown={(event) => rowKeyDown(event, trade)}
+                role="button"
+                tabIndex={0}
+              >
                 <td>{shortDate(trade.entryDateTime)}</td>
                 <td className="symbol">{trade.symbol}</td>
                 <td>{trade.assetClass}</td>
@@ -249,6 +491,7 @@ export function TradeLog({
                   </span>
                 </td>
                 <td>{trade.quantity}</td>
+                <td>{trade.remainingQuantity}</td>
                 <td>{money(trade.entryPrice)}</td>
                 <td>{trade.exitPrice === null ? "Open" : money(trade.exitPrice)}</td>
                 <td
@@ -262,7 +505,7 @@ export function TradeLog({
                 >
                   {trade.returnAmount === null
                     ? "Open"
-                    : `${money(trade.returnAmount)} (${trade.returnPercent}%)`}
+                    : `${money(trade.returnAmount)} (${percent(trade.returnPercent)})`}
                 </td>
                 <td>
                   <span className="badge badge-neutral">{trade.status}</span>
@@ -271,19 +514,26 @@ export function TradeLog({
                   <div className="row-actions">
                     <button
                       className="secondary-button table-button"
-                      onClick={() => openEditModal(trade)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openDetail(trade);
+                      }}
                       type="button"
                     >
-                      Edit
+                      Details
                     </button>
-                    <button
-                      className="secondary-button table-button danger-button"
-                      disabled={busy}
-                      onClick={() => deleteTrade(trade.id)}
-                      type="button"
-                    >
-                      Delete
-                    </button>
+                    {trade.status === "OPEN" && trade.remainingQuantity > 0 ? (
+                      <button
+                        className="secondary-button table-button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openSellModal(trade);
+                        }}
+                        type="button"
+                      >
+                        Sell
+                      </button>
+                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -291,8 +541,164 @@ export function TradeLog({
           </tbody>
         </table>
       </div>
+      <div className="pagination-bar" aria-label="Trade Log pagination">
+        <span>
+          Page {clampTradePage(page, trades.length)} of {pageCount}
+        </span>
+        <div className="pagination-actions">
+          <button
+            className="secondary-button table-button"
+            disabled={page <= 1}
+            onClick={() => setPage((current) => clampTradePage(current - 1, trades.length))}
+            type="button"
+          >
+            Previous
+          </button>
+          <button
+            className="secondary-button table-button"
+            disabled={page >= pageCount}
+            onClick={() => setPage((current) => clampTradePage(current + 1, trades.length))}
+            type="button"
+          >
+            Next
+          </button>
+        </div>
+      </div>
 
-      {modalMode ? (
+      {selectedTrade && !modalMode ? (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            aria-labelledby="trade-detail-title"
+            aria-modal="true"
+            className="modal-panel trade-detail-panel"
+            role="dialog"
+          >
+            <div className="modal-heading">
+              <div>
+                <p className="eyebrow">Trade Detail</p>
+                <h2 id="trade-detail-title">{selectedTrade.symbol}</h2>
+              </div>
+              <button
+                aria-label="Close"
+                className="icon-button"
+                disabled={busy}
+                onClick={closeDetail}
+                type="button"
+              >
+                x
+              </button>
+            </div>
+            {error ? <p className="form-error">{error}</p> : null}
+            <div className="detail-summary-grid">
+              <div>
+                <span>Status</span>
+                <strong>{selectedTrade.status}</strong>
+              </div>
+              <div>
+                <span>Remaining</span>
+                <strong>{selectedTrade.remainingQuantity}</strong>
+              </div>
+              <div>
+                <span>Realized P/L</span>
+                <strong
+                  className={
+                    selectedTrade.returnAmount === null
+                      ? "muted-cell"
+                      : selectedTrade.returnAmount >= 0
+                        ? "positive"
+                        : "negative"
+                  }
+                >
+                  {money(selectedTrade.returnAmount)}
+                </strong>
+              </div>
+              <div>
+                <span>Return</span>
+                <strong>{percent(selectedTrade.returnPercent)}</strong>
+              </div>
+            </div>
+            <div className="detail-meta-grid">
+              <p>
+                <span>Asset</span>
+                {selectedTrade.assetClass}
+              </p>
+              <p>
+                <span>Side</span>
+                {selectedTrade.side}
+              </p>
+              <p>
+                <span>Total quantity</span>
+                {selectedTrade.quantity}
+              </p>
+              <p>
+                <span>Average entry</span>
+                {money(selectedTrade.entryPrice)}
+              </p>
+              <p>
+                <span>Last exit</span>
+                {selectedTrade.exitPrice === null ? "Open" : money(selectedTrade.exitPrice)}
+              </p>
+              <p>
+                <span>Total fees</span>
+                {money(selectedTrade.fees)}
+              </p>
+            </div>
+            <div className="execution-section">
+              <h3>Execution History</h3>
+              <div className="execution-list">
+                {selectedTrade.executions.length > 0 ? (
+                  selectedTrade.executions.map((execution, index) => (
+                    <div className="execution-row" key={execution.id ?? `${execution.action}-${index}`}>
+                      <span className={execution.action === "BUY" ? "badge badge-success" : "badge badge-danger"}>
+                        {execution.action}
+                      </span>
+                      <div>
+                        <strong>
+                          {execution.quantity} @ {money(execution.price)}
+                        </strong>
+                        <small>{displayDateTime(execution.executedAt)}</small>
+                      </div>
+                      <span>{money(execution.fees)} fees</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="muted-cell">No execution history recorded.</p>
+                )}
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="secondary-button danger-button"
+                disabled={busy}
+                onClick={() => deleteTrade(selectedTrade.id)}
+                type="button"
+              >
+                Delete
+              </button>
+              <button
+                className="secondary-button"
+                disabled={busy}
+                onClick={() => openEditModal(selectedTrade)}
+                type="button"
+              >
+                Edit Details
+              </button>
+              {selectedTrade.status === "OPEN" && selectedTrade.remainingQuantity > 0 ? (
+                <button
+                  className="primary-button"
+                  disabled={busy}
+                  onClick={() => openSellModal(selectedTrade)}
+                  type="button"
+                >
+                  Record Sell
+                </button>
+              ) : null}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {modalMode === "buy" || modalMode === "edit" ? (
         <div className="modal-backdrop" role="presentation">
           <section
             aria-labelledby="trade-modal-title"
@@ -302,9 +708,9 @@ export function TradeLog({
           >
             <div className="modal-heading">
               <div>
-                <p className="eyebrow">Manual Trade</p>
+                <p className="eyebrow">{modalMode === "edit" ? "Edit Details" : "Manual Trade"}</p>
                 <h2 id="trade-modal-title">
-                  {modalMode === "edit" ? "Edit Trade" : "New Trade"}
+                  {modalMode === "edit" ? "Edit Trade Details" : "Add Trade / Buy"}
                 </h2>
               </div>
               <button
@@ -318,7 +724,7 @@ export function TradeLog({
               </button>
             </div>
 
-            <form className="entry-form" onSubmit={submit}>
+            <form className="entry-form" onSubmit={submitTrade}>
               <label>
                 Asset class
                 <select
@@ -341,26 +747,28 @@ export function TradeLog({
                   value={form.symbol}
                 />
               </label>
-              <div className="span-full side-control" role="group" aria-label="Side">
-                <button
-                  aria-pressed={form.side === "LONG"}
-                  className="side-long"
-                  onClick={() => updateField("side", "LONG")}
-                  type="button"
-                >
-                  Long / Buy
-                </button>
-                <button
-                  aria-pressed={form.side === "SHORT"}
-                  className="side-short"
-                  onClick={() => updateField("side", "SHORT")}
-                  type="button"
-                >
-                  Short / Sell
-                </button>
-              </div>
+              {modalMode === "buy" ? (
+                <div className="span-full side-control" role="group" aria-label="Side">
+                  <button
+                    aria-pressed={form.side === "LONG"}
+                    className="side-long"
+                    onClick={() => updateField("side", "LONG")}
+                    type="button"
+                  >
+                    Long / Buy
+                  </button>
+                  <button
+                    aria-pressed={form.side === "SHORT"}
+                    className="side-short"
+                    onClick={() => updateField("side", "SHORT")}
+                    type="button"
+                  >
+                    Short / Sell
+                  </button>
+                </div>
+              ) : null}
               <label>
-                Quantity
+                {modalMode === "edit" ? "Opening quantity" : "Buy quantity"}
                 <input
                   min="1"
                   name="quantity"
@@ -372,18 +780,7 @@ export function TradeLog({
                 />
               </label>
               <label>
-                Status
-                <select
-                  name="status"
-                  onChange={(event) => updateField("status", event.target.value)}
-                  value={form.status}
-                >
-                  <option>OPEN</option>
-                  <option>CLOSED</option>
-                </select>
-              </label>
-              <label>
-                Entry date/time
+                {modalMode === "edit" ? "Opening date/time" : "Buy date/time"}
                 <input
                   name="entryDateTime"
                   onChange={(event) => updateField("entryDateTime", event.target.value)}
@@ -393,7 +790,7 @@ export function TradeLog({
                 />
               </label>
               <label>
-                Entry price
+                {modalMode === "edit" ? "Opening price" : "Buy price"}
                 <input
                   min="0"
                   name="entryPrice"
@@ -405,29 +802,7 @@ export function TradeLog({
                 />
               </label>
               <label>
-                Exit date/time
-                <input
-                  disabled={form.status === "OPEN"}
-                  name="exitDateTime"
-                  onChange={(event) => updateField("exitDateTime", event.target.value)}
-                  type="datetime-local"
-                  value={form.exitDateTime}
-                />
-              </label>
-              <label>
-                Exit price
-                <input
-                  disabled={form.status === "OPEN"}
-                  min="0"
-                  name="exitPrice"
-                  onChange={(event) => updateField("exitPrice", event.target.value)}
-                  step="0.01"
-                  type="number"
-                  value={form.exitPrice}
-                />
-              </label>
-              <label className="span-full">
-                Fees
+                Opening fees
                 <input
                   min="0"
                   name="fees"
@@ -448,7 +823,121 @@ export function TradeLog({
                   Cancel
                 </button>
                 <button className="save-button" disabled={busy} type="submit">
-                  Save Trade
+                  {modalMode === "edit" ? "Save Details" : "Add Trade"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
+
+      {modalMode === "sell" && selectedTrade ? (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            aria-labelledby="sell-modal-title"
+            aria-modal="true"
+            className="modal-panel"
+            role="dialog"
+          >
+            <div className="modal-heading">
+              <div>
+                <p className="eyebrow">Exit Execution</p>
+                <h2 id="sell-modal-title">Record Sell</h2>
+              </div>
+              <button
+                aria-label="Close"
+                className="icon-button"
+                disabled={busy}
+                onClick={closeModal}
+                type="button"
+              >
+                x
+              </button>
+            </div>
+            <form className="entry-form" onSubmit={submitSell}>
+              <div className="span-full segmented" role="group" aria-label="Sell type">
+                <button
+                  aria-pressed={sellForm.mode === "partial"}
+                  onClick={() => updateSellField("mode", "partial")}
+                  type="button"
+                >
+                  Partial Sell
+                </button>
+                <button
+                  aria-pressed={sellForm.mode === "full"}
+                  onClick={() => updateSellField("mode", "full")}
+                  type="button"
+                >
+                  Full Sell
+                </button>
+              </div>
+              <label>
+                Sell quantity
+                <input
+                  disabled={sellForm.mode === "full"}
+                  max={selectedTrade.remainingQuantity}
+                  min="1"
+                  name="sellQuantity"
+                  onChange={(event) => updateSellField("quantity", event.target.value)}
+                  required
+                  step="1"
+                  type="number"
+                  value={
+                    sellForm.mode === "full"
+                      ? String(selectedTrade.remainingQuantity)
+                      : sellForm.quantity
+                  }
+                />
+              </label>
+              <label>
+                Sell date/time
+                <input
+                  name="sellDateTime"
+                  onChange={(event) => updateSellField("executedAt", event.target.value)}
+                  required
+                  type="datetime-local"
+                  value={sellForm.executedAt}
+                />
+              </label>
+              <label>
+                Sell price
+                <input
+                  min="0"
+                  name="sellPrice"
+                  onChange={(event) => updateSellField("price", event.target.value)}
+                  required
+                  step="0.01"
+                  type="number"
+                  value={sellForm.price}
+                />
+              </label>
+              <label>
+                Sell fees
+                <input
+                  min="0"
+                  name="sellFees"
+                  onChange={(event) => updateSellField("fees", event.target.value)}
+                  step="0.01"
+                  type="number"
+                  value={sellForm.fees}
+                />
+              </label>
+              <p className="form-help span-full">
+                Open quantity: {selectedTrade.remainingQuantity}. Full sell records the entire
+                remaining position.
+              </p>
+              {error ? <p className="form-error span-full">{error}</p> : null}
+              <div className="modal-actions">
+                <button
+                  className="secondary-button"
+                  disabled={busy}
+                  onClick={closeModal}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button className="save-button" disabled={busy} type="submit">
+                  Record Sell
                 </button>
               </div>
             </form>
