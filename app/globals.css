@@ -587,6 +587,72 @@ tbody tr:hover {
   gap: 16px;
 }
 
+.equity-heading-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.segmented-control {
+  background: #121514;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(2, minmax(74px, 1fr));
+  padding: 4px;
+}
+
+.segmented-control button {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  min-height: 32px;
+  padding: 6px 9px;
+}
+
+.segmented-control button[aria-pressed="true"] {
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
+.equity-chart-meta {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.equity-chart-meta div {
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+}
+
+.equity-chart-meta span,
+.equity-chart-meta strong {
+  overflow-wrap: anywhere;
+}
+
+.equity-chart-meta span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.equity-chart-meta strong {
+  font-size: 0.9rem;
+}
+
 .equity-chart svg {
   background: #111514;
   border: 1px solid #26302d;
@@ -603,11 +669,49 @@ tbody tr:hover {
 
 .equity-line {
   fill: none;
-  stroke: var(--accent);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2.6;
   vector-effect: non-scaling-stroke;
+}
+
+.equity-line-closed {
+  stroke: var(--accent);
+}
+
+.equity-line-open {
+  stroke: var(--warning);
+}
+
+.equity-legend {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.equity-legend span {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 800;
+  gap: 7px;
+}
+
+.legend-swatch {
+  border-radius: 999px;
+  display: inline-block;
+  height: 8px;
+  width: 22px;
+}
+
+.legend-closed {
+  background: var(--accent);
+}
+
+.legend-open {
+  background: var(--warning);
 }
 
 .equity-points {
@@ -625,11 +729,58 @@ tbody tr:hover {
   padding: 10px;
 }
 
+.equity-points .open-equity-point {
+  border-color: rgba(224, 184, 80, 0.45);
+}
+
 .equity-points span,
 .equity-points em {
   color: var(--muted);
   font-size: 0.82rem;
   font-style: normal;
+}
+
+.quote-state-panel {
+  background: rgba(224, 184, 80, 0.1);
+  border: 1px solid rgba(224, 184, 80, 0.35);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px;
+}
+
+.quote-state-panel strong {
+  color: var(--warning);
+}
+
+.quote-state-panel ul {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.quote-state-panel li {
+  align-items: start;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: minmax(120px, 220px) minmax(0, 1fr);
+}
+
+.quote-state-panel span {
+  color: var(--ink);
+  font-weight: 800;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.quote-state-panel em {
+  color: var(--muted);
+  font-style: normal;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .chart-row {
@@ -846,6 +997,7 @@ tbody tr:hover {
 .primary-button:focus-visible,
 .secondary-button:focus-visible,
 .icon-button:focus-visible,
+.segmented-control button:focus-visible,
 .save-button:focus-visible,
 .side-control button:focus-visible,
 .side-nav a:focus-visible,
@@ -1520,6 +1672,7 @@ tbody tr:hover {
 
   .metric-grid,
   .dashboard-grid,
+  .equity-chart-meta,
   .entry-form,
   .stats-filter-bar,
   .breakdown-grid,
@@ -1542,6 +1695,15 @@ tbody tr:hover {
   .filter-actions .secondary-button {
     justify-content: center;
     width: 100%;
+  }
+
+  .equity-heading-actions,
+  .segmented-control {
+    width: 100%;
+  }
+
+  .quote-state-panel li {
+    grid-template-columns: 1fr;
   }
 
   .modal-actions {

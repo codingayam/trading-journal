@@ -14,6 +14,19 @@ export type DashboardTrade = {
   returnPercent: number | null;
 };
 
+export type DashboardOpenPositionPnl = {
+  tradeId: string;
+  symbol: string;
+  status: "available" | "unavailable";
+  side: string;
+  remainingQuantity: number;
+  averageEntryPrice?: number;
+  latestPrice: number | null;
+  unrealizedPnl: number | null;
+  quoteAsOf?: string;
+  message?: string;
+};
+
 export type DashboardSummary = {
   totalPnl: number;
   wins: number;
@@ -31,6 +44,8 @@ export type EquityPoint = {
   symbol: string;
   pnl: number;
   equity: number;
+  pointPercent: number;
+  returnPercent: number;
 };
 
 function startOfLocalDay(date: Date) {
@@ -120,6 +135,7 @@ export function getDashboardSummary(trades: DashboardTrade[]): DashboardSummary 
 
 export function getEquityPoints(trades: DashboardTrade[]): EquityPoint[] {
   let equity = 0;
+  let basis = 0;
 
   return trades
     .filter((trade) => trade.returnAmount !== null)
@@ -131,6 +147,7 @@ export function getEquityPoints(trades: DashboardTrade[]): EquityPoint[] {
     .map((trade) => {
       const pnl = Number(trade.returnAmount ?? 0);
       equity += pnl;
+      basis += realizedBasis(trade);
 
       return {
         id: trade.id,
@@ -138,6 +155,116 @@ export function getEquityPoints(trades: DashboardTrade[]): EquityPoint[] {
         symbol: trade.symbol,
         pnl,
         equity,
+        pointPercent: Number(trade.returnPercent ?? 0),
+        returnPercent: basis <= 0 ? 0 : roundPercent((equity / basis) * 100),
       };
     });
+}
+
+export type EquityChartPoint = {
+  id: string;
+  date: string | null;
+  symbol: string;
+  pnl: number;
+  pointPercent: number;
+  absoluteValue: number;
+  percentValue: number;
+};
+
+export type OpenPositionPnlPoint = EquityChartPoint & {
+  latestPrice: number;
+  quoteAsOf: string | null;
+  remainingQuantity: number;
+};
+
+export type OpenPositionPnlUnavailable = {
+  tradeId: string;
+  symbol: string;
+  message: string;
+};
+
+export type EquityChartModel = {
+  closed: EquityChartPoint[];
+  open: OpenPositionPnlPoint[];
+  unavailableOpen: OpenPositionPnlUnavailable[];
+};
+
+export function getEquityChartModel(
+  trades: DashboardTrade[],
+  openPositionPnl: DashboardOpenPositionPnl[] = [],
+): EquityChartModel {
+  const closed = getEquityPoints(trades).map((point) => ({
+    id: point.id,
+    date: point.date,
+    symbol: point.symbol,
+    pnl: point.pnl,
+    pointPercent: point.pointPercent,
+    absoluteValue: point.equity,
+    percentValue: point.returnPercent,
+  }));
+
+  let openPnl = 0;
+  let openBasis = 0;
+  const open = openPositionPnl
+    .filter(
+      (
+        point,
+      ): point is DashboardOpenPositionPnl & {
+        status: "available";
+        averageEntryPrice: number;
+        latestPrice: number;
+        unrealizedPnl: number;
+      } =>
+        point.status === "available" &&
+        point.latestPrice !== null &&
+        point.unrealizedPnl !== null &&
+        point.averageEntryPrice !== undefined,
+    )
+    .sort((left, right) => left.symbol.localeCompare(right.symbol) || left.tradeId.localeCompare(right.tradeId))
+    .map((point) => {
+      openPnl += point.unrealizedPnl;
+      openBasis += point.averageEntryPrice * point.remainingQuantity;
+
+      return {
+        id: point.tradeId,
+        date: point.quoteAsOf ?? null,
+        symbol: point.symbol,
+        pnl: point.unrealizedPnl,
+        pointPercent: roundPercent((point.unrealizedPnl / (point.averageEntryPrice * point.remainingQuantity)) * 100),
+        absoluteValue: roundMoney(openPnl),
+        percentValue: openBasis <= 0 ? 0 : roundPercent((openPnl / openBasis) * 100),
+        latestPrice: point.latestPrice,
+        quoteAsOf: point.quoteAsOf ?? null,
+        remainingQuantity: point.remainingQuantity,
+      };
+    });
+
+  const unavailableOpen = openPositionPnl
+    .filter((point) => point.status === "unavailable")
+    .map((point) => ({
+      tradeId: point.tradeId,
+      symbol: point.symbol,
+      message: point.message ?? "Latest EOD quote is unavailable.",
+    }));
+
+  return { closed, open, unavailableOpen };
+}
+
+function realizedBasis(trade: DashboardTrade) {
+  const pnl = Number(trade.returnAmount ?? 0);
+  const percent = Number(trade.returnPercent ?? 0);
+
+  if (Number.isFinite(percent) && percent !== 0) {
+    return Math.abs(pnl / (percent / 100));
+  }
+
+  return Math.max(0, trade.entryPrice * trade.quantity);
+}
+
+function roundMoney(value: number) {
+  return Number(value.toFixed(2));
+}
+
+function roundPercent(value: number) {
+  return Number(value.toFixed(2));
 }
