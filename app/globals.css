@@ -324,6 +324,22 @@ a {
   color: var(--ink);
 }
 
+.dashboard-shell,
+.dashboard-primary-trades-slot,
+.dashboard-calendar-slot {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.dashboard-filter-slot,
+.dashboard-kpi-slot,
+.dashboard-equity-slot,
+.dashboard-primary-trades-slot > .card,
+.dashboard-calendar-slot > .card {
+  min-width: 0;
+}
+
 .card-heading {
   align-items: center;
   display: flex;

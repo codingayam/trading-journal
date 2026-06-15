@@ -11,6 +11,28 @@ assert.ok(!sidebar.includes("#setups"), "sidebar must not link to setup anchors"
 
 const workspace = read("app/trading-workspace.tsx");
 assert.ok(!workspace.includes("SetupSummary"), "dashboard workspace must not render setup cards");
+assert.ok(
+  workspace.includes("dashboard-primary-trades-slot"),
+  "dashboard workspace must expose a stable primary trade-list slot",
+);
+assert.ok(
+  workspace.includes("dashboard-calendar-slot"),
+  "dashboard workspace must expose a stable calendar slot",
+);
+
+const dashboardView = read("app/dashboard-view.tsx");
+assert.ok(
+  !dashboardView.includes("Recent Performance"),
+  "dashboard view must not render the removed Recent Performance table",
+);
+assert.ok(
+  !dashboardView.includes("dashboard-trades"),
+  "dashboard view must not keep a duplicate dashboard trade-list card",
+);
+assert.ok(
+  dashboardView.includes("dashboard-equity-slot"),
+  "dashboard view must expose a stable equity chart slot",
+);
 
 const home = read("app/page.tsx");
 assert.ok(!home.includes("buildSetupSummaries"), "home page must not derive setup summaries");

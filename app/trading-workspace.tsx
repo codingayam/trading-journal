@@ -21,12 +21,14 @@ export function TradingWorkspace({ initialTrades }: TradingWorkspaceProps) {
   );
 
   return (
-    <>
+    <div className="dashboard-shell">
       <DashboardView trades={sortedTrades} />
-      <section className="dashboard-grid">
+      <section className="dashboard-primary-trades-slot" aria-label="Primary trade list">
         <TradeLog onTradesChange={setTrades} trades={sortedTrades} />
+      </section>
+      <section className="dashboard-calendar-slot" aria-label="Calendar and realized P/L">
         <PnlCalendar trades={sortedTrades} />
       </section>
-    </>
+    </div>
   );
 }
