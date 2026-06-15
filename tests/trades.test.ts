@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { unlink } from "node:fs/promises";
 import { PrismaClient } from "@prisma/client";
 import { PATCH as updateTrade } from "../app/api/trades/[id]/route";
-import { POST as createTrade } from "../app/api/trades/route";
+import { GET as listTrades, POST as createTrade } from "../app/api/trades/route";
 import { createSession, sessionCookieName } from "../lib/auth";
 import { hashPassword } from "../lib/password";
 
@@ -18,6 +18,14 @@ function jsonRequest(url: string, body: unknown, cookie: string, method = "POST"
       cookie,
     },
     body: JSON.stringify(body),
+  });
+}
+
+function apiRequest(url: string, cookie: string) {
+  return new Request(url, {
+    headers: {
+      cookie,
+    },
   });
 }
 
@@ -160,6 +168,60 @@ async function run() {
   assert.equal(fullExitTrade.exitPrice, 16);
   assert.equal(fullExitTrade.exitDateTime, "2026-06-10T16:00:00.000Z");
 
+  const reopenedResponse = await createTrade(
+    jsonRequest(
+      "http://test.local/api/trades",
+      {
+        assetClass: "Stock",
+        symbol: "aapl",
+        side: "LONG",
+        quantity: 5,
+        entryDateTime: "2026-06-12T14:00:00.000Z",
+        entryPrice: 20,
+        fees: 1,
+        status: "OPEN",
+      },
+      first.cookie,
+    ),
+  );
+  assert.equal(reopenedResponse.status, 201);
+  const reopenedTrade = (await reopenedResponse.json()).trade;
+  assert.equal(reopenedTrade.id, partialTrade.id);
+  assert.equal(reopenedTrade.status, "OPEN");
+  assert.equal(reopenedTrade.quantity, 155);
+  assert.equal(reopenedTrade.remainingQuantity, 5);
+  assert.equal(reopenedTrade.entryPrice, 20);
+  assert.equal(reopenedTrade.returnAmount, 720);
+  assert.equal(reopenedTrade.executions.length, 5);
+  assert.deepEqual(
+    reopenedTrade.executions.map((execution: { action: string }) => execution.action),
+    ["BUY", "BUY", "SELL", "SELL", "BUY"],
+  );
+
+  const optionResponse = await createTrade(
+    jsonRequest(
+      "http://test.local/api/trades",
+      {
+        assetClass: "Option",
+        symbol: "AAPL",
+        side: "LONG",
+        quantity: 1,
+        entryDateTime: "2026-06-12T15:00:00.000Z",
+        entryPrice: 2,
+        fees: 0,
+        status: "OPEN",
+      },
+      first.cookie,
+    ),
+  );
+  assert.equal(optionResponse.status, 201);
+  const optionTrade = (await optionResponse.json()).trade;
+  assert.notEqual(optionTrade.id, partialTrade.id);
+  assert.equal(
+    await prisma.trade.count({ where: { userId: first.user.id, symbol: "AAPL" } }),
+    2,
+  );
+
   const shortResponse = await createTrade(
     jsonRequest(
       "http://test.local/api/trades",
@@ -198,6 +260,133 @@ async function run() {
   assert.equal(shortTrade.status, "OPEN");
   assert.equal(shortTrade.remainingQuantity, 6);
   assert.equal(shortTrade.returnAmount, 40);
+
+  const duplicateOpenFirst = await createTrade(
+    jsonRequest(
+      "http://test.local/api/trades",
+      {
+        assetClass: "Stock",
+        symbol: "nflx",
+        side: "LONG",
+        quantity: 10,
+        entryDateTime: "2026-06-13T14:00:00.000Z",
+        entryPrice: 100,
+        fees: 0,
+        status: "OPEN",
+      },
+      first.cookie,
+    ),
+  );
+  assert.equal(duplicateOpenFirst.status, 201);
+  const firstNflx = (await duplicateOpenFirst.json()).trade;
+
+  const duplicateOpenSecond = await createTrade(
+    jsonRequest(
+      "http://test.local/api/trades",
+      {
+        assetClass: "Stock",
+        symbol: "NFLX",
+        side: "LONG",
+        quantity: 5,
+        entryDateTime: "2026-06-13T15:00:00.000Z",
+        entryPrice: 110,
+        fees: 0,
+        status: "OPEN",
+      },
+      first.cookie,
+    ),
+  );
+  assert.equal(duplicateOpenSecond.status, 201);
+  const secondNflx = (await duplicateOpenSecond.json()).trade;
+  assert.equal(secondNflx.id, firstNflx.id);
+  assert.equal(secondNflx.quantity, 15);
+  assert.equal(secondNflx.remainingQuantity, 15);
+  assert.equal(secondNflx.entryPrice, 103.33);
+  assert.equal(secondNflx.executions.length, 2);
+  assert.equal(
+    await prisma.trade.count({ where: { userId: first.user.id, assetClass: "Stock", symbol: "NFLX" } }),
+    1,
+  );
+
+  const sideMismatch = await createTrade(
+    jsonRequest(
+      "http://test.local/api/trades",
+      {
+        assetClass: "Stock",
+        symbol: "NFLX",
+        side: "SHORT",
+        quantity: 1,
+        entryDateTime: "2026-06-13T16:00:00.000Z",
+        entryPrice: 105,
+        fees: 0,
+        status: "OPEN",
+      },
+      first.cookie,
+    ),
+  );
+  assert.equal(sideMismatch.status, 400);
+
+  await prisma.trade.create({
+    data: {
+      id: "duplicate-goog-1",
+      userId: first.user.id,
+      assetClass: "Stock",
+      tradeDate: new Date("2026-06-14T14:00:00.000Z"),
+      symbol: "GOOG",
+      side: "LONG",
+      quantity: 1,
+      entryPrice: "10",
+      fees: "0",
+      status: "OPEN",
+      executions: {
+        create: {
+          action: "BUY",
+          executedAt: new Date("2026-06-14T14:00:00.000Z"),
+          quantity: 1,
+          price: "10",
+          fees: "0",
+        },
+      },
+    },
+  });
+  await prisma.trade.create({
+    data: {
+      id: "duplicate-goog-2",
+      userId: first.user.id,
+      assetClass: "Stock",
+      tradeDate: new Date("2026-06-14T15:00:00.000Z"),
+      symbol: "goog",
+      side: "LONG",
+      quantity: 2,
+      entryPrice: "12",
+      fees: "0",
+      status: "OPEN",
+      executions: {
+        create: {
+          action: "BUY",
+          executedAt: new Date("2026-06-14T15:00:00.000Z"),
+          quantity: 2,
+          price: "12",
+          fees: "0",
+        },
+      },
+    },
+  });
+
+  const listed = await listTrades(apiRequest("http://test.local/api/trades", first.cookie));
+  assert.equal(listed.status, 200);
+  const listedBody = await listed.json();
+  const googRows = listedBody.trades.filter((trade: { symbol: string }) => trade.symbol === "GOOG");
+  assert.equal(googRows.length, 1);
+  assert.equal(googRows[0].quantity, 3);
+  assert.equal(googRows[0].remainingQuantity, 3);
+  assert.equal(googRows[0].executions.length, 2);
+  assert.equal(
+    await prisma.trade.count({
+      where: { userId: first.user.id, assetClass: "Stock", symbol: { in: ["GOOG", "goog"] } },
+    }),
+    1,
+  );
 }
 
 run()

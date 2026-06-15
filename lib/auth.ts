@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { cleanupDuplicateTickerTrades } from "@/lib/trade-tickers";
 
 export const sessionCookieName = "tj_session";
 const sessionDays = 30;
@@ -149,6 +150,8 @@ export async function getCurrentUserWithTradingData() {
   if (!currentUser) {
     return null;
   }
+
+  await cleanupDuplicateTickerTrades(currentUser.id);
 
   return prisma.user.findUnique({
     where: { id: currentUser.id },

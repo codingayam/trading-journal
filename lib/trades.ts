@@ -365,6 +365,42 @@ export function tradeSnapshotData(snapshot: ExecutionSnapshot) {
   };
 }
 
+export function derivedTradeWriteData(
+  side: string,
+  executions: ExecutionLike[],
+  fallback: {
+    tradeDate: Date;
+    entryPrice: string | Prisma.Decimal;
+    fees: string | Prisma.Decimal;
+  },
+) {
+  const snapshot = deriveExecutionSnapshot(side, executions);
+  if (snapshot.errors.length > 0) {
+    return { ok: false as const, errors: snapshot.errors };
+  }
+
+  const snapshotData = tradeSnapshotData(snapshot);
+  const orderedExecutions = sortedExecutions(executions);
+  const executionFees = executions.reduce(
+    (sum, execution) => sum + numberFromDecimal(execution.fees),
+    0,
+  );
+
+  return {
+    ok: true as const,
+    data: {
+      tradeDate: orderedExecutions[0]?.executedAt ?? fallback.tradeDate,
+      quantity: snapshotData.quantity,
+      entryPrice: snapshotData.entryPrice ?? fallback.entryPrice,
+      exitDate: snapshotData.exitDate,
+      exitPrice: snapshotData.exitPrice,
+      fees: executionFees > 0 ? executionFees.toFixed(2) : fallback.fees,
+      status: snapshotData.status,
+      grossPnl: snapshotData.grossPnl,
+    },
+  };
+}
+
 export function returnPercentForTrade(input: {
   status: string;
   grossPnl: unknown;

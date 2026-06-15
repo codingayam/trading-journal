@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import {
-  deriveExecutionSnapshot,
+  derivedTradeWriteData,
   legacyExecutionsFromTrade,
   parseTradeInput,
   serializeTrade,
-  tradeSnapshotData,
 } from "@/lib/trades";
 
 type Context = {
@@ -124,12 +123,14 @@ export async function PATCH(request: Request, context: Context) {
           status: merged.status,
         })
       : existingExecutions);
-  const snapshot = deriveExecutionSnapshot(merged.side, executions);
-  if (snapshot.errors.length > 0) {
-    return NextResponse.json({ errors: snapshot.errors }, { status: 400 });
+  const derived = derivedTradeWriteData(merged.side, executions, {
+    tradeDate: merged.tradeDate,
+    entryPrice: merged.entryPrice,
+    fees: merged.fees,
+  });
+  if (!derived.ok) {
+    return NextResponse.json({ errors: derived.errors }, { status: 400 });
   }
-  const snapshotData = tradeSnapshotData(snapshot);
-  const executionFees = executions.reduce((sum, execution) => sum + Number(execution.fees), 0);
 
   const result = await prisma.$transaction(async (tx) => {
     const update = await tx.trade.updateMany({
@@ -139,13 +140,7 @@ export async function PATCH(request: Request, context: Context) {
       },
       data: {
         ...parsedTradeData,
-        quantity: snapshotData.quantity,
-        entryPrice: snapshotData.entryPrice ?? merged.entryPrice,
-        exitDate: snapshotData.exitDate,
-        exitPrice: snapshotData.exitPrice,
-        fees: executionFees > 0 ? executionFees.toFixed(2) : merged.fees,
-        status: snapshotData.status,
-        grossPnl: snapshotData.grossPnl,
+        ...derived.data,
       },
     });
 

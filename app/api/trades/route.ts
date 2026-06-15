@@ -2,11 +2,17 @@ import { NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import {
-  deriveExecutionSnapshot,
+  cleanupDuplicateTickerTrades,
+  executionCreateData,
+  executionsForTrade,
+  mergeTickerTrades,
+  TradeApiError,
+} from "@/lib/trade-tickers";
+import {
+  derivedTradeWriteData,
   legacyExecutionsFromTrade,
   parseTradeInput,
   serializeTrade,
-  tradeSnapshotData,
 } from "@/lib/trades";
 
 export async function GET(request: Request) {
@@ -15,6 +21,8 @@ export async function GET(request: Request) {
   if (!user) {
     return response;
   }
+
+  await cleanupDuplicateTickerTrades(user.id);
 
   const trades = await prisma.trade.findMany({
     where: { userId: user.id },
@@ -57,56 +65,109 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json({ errors: ["Missing required trade fields."] }, { status: 400 });
   }
+  const assetClass = data.assetClass;
+  const symbol = data.symbol;
+  const side = data.side;
+  const tradeDate = data.tradeDate;
+  const quantity = data.quantity;
+  const entryPrice = data.entryPrice;
+  const fees = data.fees;
+  const status = data.status;
 
   const executions =
     parsedExecutions ??
     legacyExecutionsFromTrade({
-      side: data.side,
-      tradeDate: data.tradeDate,
-      quantity: data.quantity,
-      entryPrice: data.entryPrice,
+      side,
+      tradeDate,
+      quantity,
+      entryPrice,
       exitDate: data.exitDate,
       exitPrice: data.exitPrice,
-      fees: data.fees,
-      status: data.status,
+      fees,
+      status,
     });
-  const snapshot = deriveExecutionSnapshot(data.side, executions);
-  if (snapshot.errors.length > 0) {
-    return NextResponse.json({ errors: snapshot.errors }, { status: 400 });
-  }
-  const snapshotData = tradeSnapshotData(snapshot);
-  const executionFees = executions.reduce((sum, execution) => sum + Number(execution.fees), 0);
-
-  const trade = await prisma.trade.create({
-    data: {
-      userId: user.id,
-      assetClass: data.assetClass,
-      tradeDate: data.tradeDate,
-      symbol: data.symbol,
-      side: data.side,
-      quantity: snapshotData.quantity,
-      entryPrice: snapshotData.entryPrice ?? data.entryPrice,
-      exitDate: snapshotData.exitDate,
-      exitPrice: snapshotData.exitPrice,
-      fees: executionFees > 0 ? executionFees.toFixed(2) : data.fees,
-      status: snapshotData.status,
-      grossPnl: snapshotData.grossPnl,
-      executions: {
-        create: executions.map((execution) => ({
-          action: execution.action,
-          executedAt: execution.executedAt,
-          quantity: execution.quantity,
-          price: execution.price,
-          fees: execution.fees,
-        })),
-      },
-    },
-    include: {
-      executions: {
-        orderBy: { executedAt: "asc" },
-      },
-    },
+  const derived = derivedTradeWriteData(side, executions, {
+    tradeDate,
+    entryPrice,
+    fees,
   });
+  if (!derived.ok) {
+    return NextResponse.json({ errors: derived.errors }, { status: 400 });
+  }
+
+  let trade;
+  try {
+    trade = await prisma.$transaction(async (tx) => {
+      const existing = await mergeTickerTrades(tx, {
+        userId: user.id,
+        assetClass,
+        symbol,
+      });
+
+      if (!existing) {
+        return tx.trade.create({
+          data: {
+            userId: user.id,
+            assetClass,
+            symbol,
+            side,
+            ...derived.data,
+            executions: {
+              create: executions.map((execution) => ({
+                action: execution.action,
+                executedAt: execution.executedAt,
+                quantity: execution.quantity,
+                price: execution.price,
+                fees: execution.fees,
+              })),
+            },
+          },
+          include: {
+            executions: {
+              orderBy: { executedAt: "asc" },
+            },
+          },
+        });
+      }
+
+      if (existing.side !== side) {
+        throw new TradeApiError([
+          `Existing ${symbol} ticker is ${existing.side}. Add executions with the same side before recording an opposite-side ticker.`,
+        ]);
+      }
+
+      const appendedExecutions = [...executionsForTrade(existing), ...executions];
+      const appendedDerived = derivedTradeWriteData(existing.side, appendedExecutions, {
+        tradeDate: existing.tradeDate,
+        entryPrice: existing.entryPrice,
+        fees: existing.fees,
+      });
+      if (!appendedDerived.ok) {
+        throw new TradeApiError(appendedDerived.errors);
+      }
+
+      await tx.tradeExecution.deleteMany({ where: { tradeId: existing.id } });
+      await tx.tradeExecution.createMany({
+        data: executionCreateData(existing.id, appendedExecutions),
+      });
+
+      return tx.trade.update({
+        where: { id: existing.id },
+        data: appendedDerived.data,
+        include: {
+          executions: {
+            orderBy: { executedAt: "asc" },
+          },
+        },
+      });
+    });
+  } catch (error) {
+    if (error instanceof TradeApiError) {
+      return NextResponse.json({ errors: error.errors }, { status: error.status });
+    }
+
+    throw error;
+  }
 
   return NextResponse.json({ trade: serializeTrade(trade) }, { status: 201 });
 }

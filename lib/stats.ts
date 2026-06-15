@@ -1,5 +1,6 @@
 import type { Prisma, Trade } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { cleanupDuplicateTickerTrades } from "@/lib/trade-tickers";
 
 export type StatsDateFilters = {
   from?: string;
@@ -158,6 +159,8 @@ export function calculateTradeStats(trades: StatsTrade[]) {
 }
 
 export async function getStatsForUser(userId: string, filters: StatsDateFilters = {}) {
+  await cleanupDuplicateTickerTrades(userId);
+
   const parsed = parseStatsDateFilters(filters);
   const tradeDate: Prisma.DateTimeFilter = {};
 
