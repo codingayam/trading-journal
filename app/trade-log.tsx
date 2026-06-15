@@ -106,6 +106,10 @@ function percent(value: number | null) {
   return value === null ? "Open" : `${value}%`;
 }
 
+export function openPositionMarketValue(trade: Pick<TradeRecord, "entryPrice" | "remainingQuantity">) {
+  return trade.remainingQuantity * trade.entryPrice;
+}
+
 function formFromTrade(trade: TradeRecord): TradeFormState {
   const opening = openingExecution(trade);
 
@@ -120,11 +124,27 @@ function formFromTrade(trade: TradeRecord): TradeFormState {
   };
 }
 
+function addExecutionFormFromTrade(trade: TradeRecord): TradeFormState {
+  return {
+    assetClass: trade.assetClass,
+    symbol: trade.symbol,
+    side: trade.side,
+    quantity: "1",
+    entryDateTime: dateTimeLocalValue(new Date()),
+    entryPrice: "",
+    fees: "0",
+  };
+}
+
 function sortTrades(trades: TradeRecord[]) {
   return [...trades].sort(
     (left, right) =>
       new Date(right.entryDateTime).getTime() - new Date(left.entryDateTime).getTime(),
   );
+}
+
+function tickerKey(trade: Pick<TradeRecord, "assetClass" | "symbol">) {
+  return `${trade.assetClass}\u0000${trade.symbol.toUpperCase()}`;
 }
 
 export function pageCountForTrades(totalTrades: number) {
@@ -220,7 +240,7 @@ export function TradeLog({
   onTradesChange: (trades: TradeRecord[]) => void;
   trades: TradeRecord[];
 }) {
-  const [modalMode, setModalMode] = useState<"buy" | "edit" | "sell" | null>(null);
+  const [modalMode, setModalMode] = useState<"buy" | "addBuy" | "edit" | "sell" | null>(null);
   const [selectedTradeId, setSelectedTradeId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [form, setForm] = useState<TradeFormState>(() => emptyTradeForm());
@@ -271,6 +291,13 @@ export function TradeLog({
     setModalMode("edit");
   }
 
+  function openAddBuyModal(trade: TradeRecord) {
+    setError(null);
+    setSelectedTradeId(trade.id);
+    setForm(addExecutionFormFromTrade(trade));
+    setModalMode("addBuy");
+  }
+
   function openSellModal(trade: TradeRecord) {
     setError(null);
     setSelectedTradeId(trade.id);
@@ -318,6 +345,13 @@ export function TradeLog({
 
   function updateTradeInList(trade: TradeRecord) {
     onTradesChange(sortTrades(trades.map((item) => (item.id === trade.id ? trade : item))));
+    setSelectedTradeId(trade.id);
+  }
+
+  function upsertTradeInList(trade: TradeRecord) {
+    const key = tickerKey(trade);
+    const nextTrades = trades.filter((item) => item.id !== trade.id && tickerKey(item) !== key);
+    onTradesChange(sortTrades([trade, ...nextTrades]));
     setSelectedTradeId(trade.id);
   }
 
@@ -377,8 +411,7 @@ export function TradeLog({
     if (editingTrade) {
       updateTradeInList(trade);
     } else {
-      onTradesChange(sortTrades([trade, ...trades]));
-      setSelectedTradeId(trade.id);
+      upsertTradeInList(trade);
       setPage(1);
     }
     setBusy(false);
@@ -466,7 +499,7 @@ export function TradeLog({
               <th>Open</th>
               <th>Entry</th>
               <th>Exit</th>
-              <th>Return</th>
+              <th>Realized P/L</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -589,14 +622,19 @@ export function TradeLog({
               </button>
             </div>
             {error ? <p className="form-error">{error}</p> : null}
-            <div className="detail-summary-grid">
+            <div className="detail-summary-grid position-summary-grid">
               <div>
                 <span>Status</span>
                 <strong>{selectedTrade.status}</strong>
               </div>
               <div>
-                <span>Remaining</span>
+                <span>Open position</span>
                 <strong>{selectedTrade.remainingQuantity}</strong>
+                <small>shares</small>
+              </div>
+              <div>
+                <span>Open market value</span>
+                <strong>{money(openPositionMarketValue(selectedTrade))}</strong>
               </div>
               <div>
                 <span>Realized P/L</span>
@@ -611,17 +649,15 @@ export function TradeLog({
                 >
                   {money(selectedTrade.returnAmount)}
                 </strong>
+                <small>{percent(selectedTrade.returnPercent)}</small>
               </div>
               <div>
-                <span>Return</span>
-                <strong>{percent(selectedTrade.returnPercent)}</strong>
+                <span>Outstanding position P/L</span>
+                <strong className="muted-cell">Unavailable</strong>
+                <small>needs market price</small>
               </div>
             </div>
             <div className="detail-meta-grid">
-              <p>
-                <span>Asset</span>
-                {selectedTrade.assetClass}
-              </p>
               <p>
                 <span>Side</span>
                 {selectedTrade.side}
@@ -641,6 +677,24 @@ export function TradeLog({
               <p>
                 <span>Total fees</span>
                 {money(selectedTrade.fees)}
+              </p>
+              <p>
+                <span>Realized P/L</span>
+                <strong
+                  className={
+                    selectedTrade.returnAmount === null
+                      ? "muted-cell"
+                      : selectedTrade.returnAmount >= 0
+                        ? "positive"
+                        : "negative"
+                  }
+                >
+                  {money(selectedTrade.returnAmount)}
+                </strong>
+              </p>
+              <p>
+                <span>Realized return</span>
+                {percent(selectedTrade.returnPercent)}
               </p>
             </div>
             <div className="execution-section">
@@ -683,6 +737,14 @@ export function TradeLog({
               >
                 Edit Details
               </button>
+              <button
+                className="secondary-button"
+                disabled={busy}
+                onClick={() => openAddBuyModal(selectedTrade)}
+                type="button"
+              >
+                {openingActionForSide(selectedTrade.side) === "BUY" ? "Add Buy" : "Add Execution"}
+              </button>
               {selectedTrade.status === "OPEN" && selectedTrade.remainingQuantity > 0 ? (
                 <button
                   className="primary-button"
@@ -698,7 +760,7 @@ export function TradeLog({
         </div>
       ) : null}
 
-      {modalMode === "buy" || modalMode === "edit" ? (
+      {modalMode === "buy" || modalMode === "addBuy" || modalMode === "edit" ? (
         <div className="modal-backdrop" role="presentation">
           <section
             aria-labelledby="trade-modal-title"
@@ -708,9 +770,21 @@ export function TradeLog({
           >
             <div className="modal-heading">
               <div>
-                <p className="eyebrow">{modalMode === "edit" ? "Edit Details" : "Manual Trade"}</p>
+                <p className="eyebrow">
+                  {modalMode === "edit"
+                    ? "Edit Details"
+                    : modalMode === "addBuy"
+                      ? "Add Execution"
+                      : "Manual Trade"}
+                </p>
                 <h2 id="trade-modal-title">
-                  {modalMode === "edit" ? "Edit Trade Details" : "Add Trade / Buy"}
+                  {modalMode === "edit"
+                    ? "Edit Trade Details"
+                    : modalMode === "addBuy"
+                      ? openingActionForSide(form.side) === "BUY"
+                        ? "Add Buy"
+                        : "Add Execution"
+                      : "Add Trade / Buy"}
                 </h2>
               </div>
               <button
@@ -728,6 +802,7 @@ export function TradeLog({
               <label>
                 Asset class
                 <select
+                  disabled={modalMode === "addBuy"}
                   name="assetClass"
                   onChange={(event) => updateField("assetClass", event.target.value)}
                   value={form.assetClass}
@@ -740,6 +815,7 @@ export function TradeLog({
               <label>
                 Symbol
                 <input
+                  disabled={modalMode === "addBuy"}
                   name="symbol"
                   onChange={(event) => updateField("symbol", event.target.value)}
                   placeholder="AAPL"
@@ -768,7 +844,11 @@ export function TradeLog({
                 </div>
               ) : null}
               <label>
-                {modalMode === "edit" ? "Opening quantity" : "Buy quantity"}
+                {modalMode === "edit"
+                  ? "Opening quantity"
+                  : openingActionForSide(form.side) === "BUY"
+                    ? "Buy quantity"
+                    : "Execution quantity"}
                 <input
                   min="1"
                   name="quantity"
@@ -780,7 +860,11 @@ export function TradeLog({
                 />
               </label>
               <label>
-                {modalMode === "edit" ? "Opening date/time" : "Buy date/time"}
+                {modalMode === "edit"
+                  ? "Opening date/time"
+                  : openingActionForSide(form.side) === "BUY"
+                    ? "Buy date/time"
+                    : "Execution date/time"}
                 <input
                   name="entryDateTime"
                   onChange={(event) => updateField("entryDateTime", event.target.value)}
@@ -790,7 +874,11 @@ export function TradeLog({
                 />
               </label>
               <label>
-                {modalMode === "edit" ? "Opening price" : "Buy price"}
+                {modalMode === "edit"
+                  ? "Opening price"
+                  : openingActionForSide(form.side) === "BUY"
+                    ? "Buy price"
+                    : "Execution price"}
                 <input
                   min="0"
                   name="entryPrice"
@@ -823,7 +911,13 @@ export function TradeLog({
                   Cancel
                 </button>
                 <button className="save-button" disabled={busy} type="submit">
-                  {modalMode === "edit" ? "Save Details" : "Add Trade"}
+                  {modalMode === "edit"
+                    ? "Save Details"
+                    : modalMode === "addBuy"
+                      ? openingActionForSide(form.side) === "BUY"
+                        ? "Add Buy"
+                        : "Add Execution"
+                      : "Add Trade"}
                 </button>
               </div>
             </form>
