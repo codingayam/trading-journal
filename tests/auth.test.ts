@@ -32,6 +32,7 @@ function cookieFrom(response: Response) {
 }
 
 async function resetDb() {
+  await prisma.tradeExecution.deleteMany();
   await prisma.authSession.deleteMany();
   await prisma.trade.deleteMany();
   await prisma.user.deleteMany();

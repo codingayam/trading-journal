@@ -155,6 +155,11 @@ export async function getCurrentUserWithTradingData() {
     include: {
       trades: {
         orderBy: { tradeDate: "desc" },
+        include: {
+          executions: {
+            orderBy: { executedAt: "asc" },
+          },
+        },
       },
     },
   });

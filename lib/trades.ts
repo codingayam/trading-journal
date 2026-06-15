@@ -1,10 +1,20 @@
-import type { Prisma, Trade } from "@prisma/client";
+import type { Prisma, Trade, TradeExecution } from "@prisma/client";
 
 const assetClasses = new Set(["Stock", "Option", "Crypto", "Forex", "Futures", "Other"]);
 const sides = new Set(["LONG", "SHORT"]);
 const statuses = new Set(["OPEN", "CLOSED"]);
+const executionActions = new Set(["BUY", "SELL"]);
 
 type TradeInputMode = "create" | "update";
+
+export type ParsedExecutionInput = {
+  id?: string;
+  action: string;
+  executedAt: Date;
+  quantity: number;
+  price: string;
+  fees: string;
+};
 
 type ParsedTradeInput = {
   assetClass?: string;
@@ -18,10 +28,40 @@ type ParsedTradeInput = {
   fees?: string;
   status?: string;
   grossPnl?: string | null;
+  executions?: ParsedExecutionInput[];
+};
+
+type ExecutionLike = {
+  id?: string;
+  action: string;
+  executedAt: Date;
+  quantity: number;
+  price: unknown;
+  fees: unknown;
+};
+
+export type TradeWithExecutions = Trade & {
+  executions: TradeExecution[];
+};
+
+export type ExecutionSnapshot = {
+  errors: string[];
+  totalQuantity: number;
+  closedQuantity: number;
+  remainingQuantity: number;
+  averageEntryPrice: number | null;
+  realizedPnl: number | null;
+  status: string;
+  exitDate: Date | null;
+  exitPrice: number | null;
 };
 
 function decimalString(value: number) {
   return value.toFixed(2);
+}
+
+function roundMoney(value: number) {
+  return Number(value.toFixed(2));
 }
 
 function numberFromDecimal(value: unknown) {
@@ -120,13 +160,218 @@ function calculateGrossPnl(input: {
   return decimalString(priceDelta * input.quantity - input.fees);
 }
 
+function parseExecutions(value: unknown, errors: string[]) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!Array.isArray(value)) {
+    errors.push("executions must be an array.");
+    return undefined;
+  }
+
+  const executions: ParsedExecutionInput[] = [];
+  value.forEach((raw, index) => {
+    const prefix = `executions[${index}]`;
+    const input = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+    if (input !== raw) {
+      errors.push(`${prefix} must be an object.`);
+      return;
+    }
+
+    const action = parseRequiredString(input.action, `${prefix}.action`, errors)?.toUpperCase();
+    const executedAt = parseDate(
+      input.executedAt ?? input.executedAtTime,
+      `${prefix}.executedAt`,
+      errors,
+    );
+    const quantity = parsePositiveNumber(input.quantity, `${prefix}.quantity`, errors);
+    const price = parsePositiveNumber(input.price, `${prefix}.price`, errors);
+    const fees = parseNonNegativeNumber(input.fees, `${prefix}.fees`, errors);
+    const id = parseOptionalString(input.id);
+
+    if (quantity !== undefined && !Number.isInteger(quantity)) {
+      errors.push(`${prefix}.quantity must be a whole number.`);
+    }
+
+    if (action && !executionActions.has(action)) {
+      errors.push(`${prefix}.action must be BUY or SELL.`);
+    }
+
+    if (
+      action &&
+      executedAt &&
+      quantity !== undefined &&
+      Number.isInteger(quantity) &&
+      price !== undefined &&
+      fees !== undefined
+    ) {
+      executions.push({
+        ...(id ? { id } : {}),
+        action,
+        executedAt,
+        quantity,
+        price: decimalString(price),
+        fees: decimalString(fees),
+      });
+    }
+  });
+
+  return executions;
+}
+
+function sortedExecutions(executions: ExecutionLike[]) {
+  return [...executions].sort((left, right) => {
+    const timeDelta = left.executedAt.getTime() - right.executedAt.getTime();
+    return timeDelta || (left.id ?? "").localeCompare(right.id ?? "");
+  });
+}
+
+function openingActionForSide(side: string) {
+  return side === "SHORT" ? "SELL" : "BUY";
+}
+
+function reducingActionForSide(side: string) {
+  return side === "SHORT" ? "BUY" : "SELL";
+}
+
+export function deriveExecutionSnapshot(side: string, executions: ExecutionLike[]): ExecutionSnapshot {
+  const errors: string[] = [];
+  const openingAction = openingActionForSide(side);
+  const reducingAction = reducingActionForSide(side);
+  let remainingQuantity = 0;
+  let averageEntryPrice = 0;
+  let totalQuantity = 0;
+  let closedQuantity = 0;
+  let realizedPnl = 0;
+  let exitDate: Date | null = null;
+  let exitPrice: number | null = null;
+
+  if (executions.length === 0) {
+    errors.push("executions must include at least one opening execution.");
+  }
+
+  for (const execution of sortedExecutions(executions)) {
+    const quantity = execution.quantity;
+    const price = numberFromDecimal(execution.price);
+    const fees = numberFromDecimal(execution.fees);
+
+    if (!executionActions.has(execution.action)) {
+      errors.push("execution action must be BUY or SELL.");
+      continue;
+    }
+
+    if (quantity <= 0 || !Number.isInteger(quantity)) {
+      errors.push("execution quantity must be a positive whole number.");
+      continue;
+    }
+
+    if (!Number.isFinite(price) || price <= 0) {
+      errors.push("execution price must be greater than zero.");
+      continue;
+    }
+
+    if (!Number.isFinite(fees) || fees < 0) {
+      errors.push("execution fees must be zero or greater.");
+      continue;
+    }
+
+    if (execution.action === openingAction) {
+      const newQuantity = remainingQuantity + quantity;
+      averageEntryPrice =
+        newQuantity === 0
+          ? 0
+          : (averageEntryPrice * remainingQuantity + price * quantity) / newQuantity;
+      remainingQuantity = newQuantity;
+      totalQuantity += quantity;
+      continue;
+    }
+
+    if (execution.action === reducingAction) {
+      if (quantity > remainingQuantity) {
+        errors.push("reducing executions cannot exceed the currently open quantity.");
+        continue;
+      }
+
+      const priceDelta =
+        side === "SHORT" ? averageEntryPrice - price : price - averageEntryPrice;
+      realizedPnl += priceDelta * quantity - fees;
+      remainingQuantity -= quantity;
+      closedQuantity += quantity;
+      exitDate = execution.executedAt;
+      exitPrice = price;
+    }
+  }
+
+  if (totalQuantity === 0 && executions.length > 0) {
+    errors.push("executions must include at least one opening execution.");
+  }
+
+  return {
+    errors,
+    totalQuantity,
+    closedQuantity,
+    remainingQuantity,
+    averageEntryPrice: totalQuantity === 0 ? null : roundMoney(averageEntryPrice),
+    realizedPnl: closedQuantity === 0 ? null : roundMoney(realizedPnl),
+    status: remainingQuantity === 0 && totalQuantity > 0 ? "CLOSED" : "OPEN",
+    exitDate,
+    exitPrice,
+  };
+}
+
+export function legacyExecutionsFromTrade(input: {
+  side: string;
+  tradeDate: Date;
+  quantity: number;
+  entryPrice: string | Prisma.Decimal;
+  exitDate?: Date | null;
+  exitPrice?: string | Prisma.Decimal | null;
+  fees?: string | Prisma.Decimal;
+  status: string;
+}) {
+  const executions: ParsedExecutionInput[] = [
+    {
+      action: openingActionForSide(input.side),
+      executedAt: input.tradeDate,
+      quantity: input.quantity,
+      price: decimalString(numberFromDecimal(input.entryPrice)),
+      fees: "0.00",
+    },
+  ];
+
+  if (input.status === "CLOSED" && input.exitDate && input.exitPrice !== null && input.exitPrice !== undefined) {
+    executions.push({
+      action: reducingActionForSide(input.side),
+      executedAt: input.exitDate,
+      quantity: input.quantity,
+      price: decimalString(numberFromDecimal(input.exitPrice)),
+      fees: decimalString(numberFromDecimal(input.fees)),
+    });
+  }
+
+  return executions;
+}
+
+export function tradeSnapshotData(snapshot: ExecutionSnapshot) {
+  return {
+    quantity: snapshot.totalQuantity,
+    entryPrice:
+      snapshot.averageEntryPrice === null ? undefined : decimalString(snapshot.averageEntryPrice),
+    exitDate: snapshot.exitDate,
+    exitPrice: snapshot.exitPrice === null ? null : decimalString(snapshot.exitPrice),
+    status: snapshot.status,
+    grossPnl: snapshot.realizedPnl === null ? null : decimalString(snapshot.realizedPnl),
+  };
+}
+
 export function returnPercentForTrade(input: {
   status: string;
   grossPnl: unknown;
   entryPrice: unknown;
   quantity: number;
 }) {
-  if (input.status === "OPEN" || input.grossPnl === null || input.grossPnl === undefined) {
+  if (input.grossPnl === null || input.grossPnl === undefined) {
     return null;
   }
 
@@ -138,27 +383,57 @@ export function returnPercentForTrade(input: {
   return Number(((numberFromDecimal(input.grossPnl) / basis) * 100).toFixed(2));
 }
 
-export function serializeTrade(trade: Trade) {
+export function serializeTrade(trade: Trade | TradeWithExecutions) {
+  const executions = "executions" in trade ? trade.executions : [];
+  const snapshot =
+    executions.length > 0 ? deriveExecutionSnapshot(trade.side, executions) : null;
   const realizedPnl =
-    trade.status === "OPEN" || !trade.exitDate || !trade.exitPrice
+    snapshot?.realizedPnl ??
+    (trade.grossPnl === null || trade.grossPnl === undefined
       ? null
-      : trade.grossPnl;
+      : numberFromDecimal(trade.grossPnl));
+  const quantity = snapshot?.totalQuantity ?? trade.quantity;
+  const remainingQuantity =
+    snapshot?.remainingQuantity ?? (trade.status === "CLOSED" ? 0 : trade.quantity);
+  const entryPrice = snapshot?.averageEntryPrice ?? numberFromDecimal(trade.entryPrice);
+  const exitDate = snapshot?.exitDate ?? trade.exitDate;
+  const exitPrice = snapshot?.exitPrice ?? (trade.exitPrice === null ? null : numberFromDecimal(trade.exitPrice));
+  const status = snapshot?.status ?? trade.status;
+  const closedQuantity =
+    snapshot?.closedQuantity ?? (status === "CLOSED" && realizedPnl !== null ? quantity : 0);
 
   return {
     id: trade.id,
     assetClass: trade.assetClass,
     symbol: trade.symbol,
     side: trade.side,
-    quantity: trade.quantity,
+    quantity,
+    remainingQuantity,
     entryDateTime: trade.tradeDate.toISOString(),
-    entryPrice: numberFromDecimal(trade.entryPrice),
-    exitDateTime: trade.exitDate?.toISOString() ?? null,
-    exitPrice: trade.exitPrice === null ? null : numberFromDecimal(trade.exitPrice),
+    entryPrice,
+    exitDateTime: exitDate?.toISOString() ?? null,
+    exitPrice,
     fees: numberFromDecimal(trade.fees),
-    status: trade.status,
-    grossPnl: realizedPnl === null ? null : numberFromDecimal(realizedPnl),
-    returnAmount: realizedPnl === null ? null : numberFromDecimal(realizedPnl),
-    returnPercent: returnPercentForTrade({ ...trade, grossPnl: realizedPnl }),
+    status,
+    grossPnl: realizedPnl,
+    returnAmount: realizedPnl,
+    returnPercent:
+      realizedPnl === null
+        ? null
+        : returnPercentForTrade({
+            status,
+            grossPnl: realizedPnl,
+            entryPrice,
+            quantity: closedQuantity > 0 ? closedQuantity : quantity,
+          }),
+    executions: executions.map((execution) => ({
+      id: execution.id,
+      action: execution.action,
+      executedAt: execution.executedAt.toISOString(),
+      quantity: execution.quantity,
+      price: numberFromDecimal(execution.price),
+      fees: numberFromDecimal(execution.fees),
+    })),
     createdAt: trade.createdAt.toISOString(),
     updatedAt: trade.updatedAt.toISOString(),
   };
@@ -274,6 +549,11 @@ export function parseTradeInput(
     if (fees !== undefined) {
       parsed.fees = decimalString(fees);
     }
+  }
+
+  const executions = parseExecutions(input.executions, errors);
+  if (executions !== undefined) {
+    parsed.executions = executions;
   }
 
   const merged = {

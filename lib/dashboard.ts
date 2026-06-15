@@ -98,21 +98,22 @@ export function filterDashboardTrades(
 }
 
 export function getDashboardSummary(trades: DashboardTrade[]): DashboardSummary {
-  const closed = trades.filter((trade) => trade.returnAmount !== null);
-  const winners = closed.filter((trade) => Number(trade.returnAmount) > 0);
-  const losers = closed.filter((trade) => Number(trade.returnAmount) < 0);
-  const totalPnl = closed.reduce((sum, trade) => sum + Number(trade.returnAmount ?? 0), 0);
+  const realized = trades.filter((trade) => trade.returnAmount !== null);
+  const winners = realized.filter((trade) => Number(trade.returnAmount) > 0);
+  const losers = realized.filter((trade) => Number(trade.returnAmount) < 0);
+  const totalPnl = realized.reduce((sum, trade) => sum + Number(trade.returnAmount ?? 0), 0);
   const totalWins = winners.reduce((sum, trade) => sum + Number(trade.returnAmount), 0);
   const totalLosses = losers.reduce((sum, trade) => sum + Number(trade.returnAmount), 0);
+  const closed = trades.filter((trade) => trade.status === "CLOSED");
 
   return {
     totalPnl,
     wins: winners.length,
     losses: losers.length,
-    winRate: closed.length === 0 ? 0 : (winners.length / closed.length) * 100,
+    winRate: realized.length === 0 ? 0 : (winners.length / realized.length) * 100,
     averageWin: winners.length === 0 ? 0 : totalWins / winners.length,
     averageLoss: losers.length === 0 ? 0 : totalLosses / losers.length,
-    openTrades: trades.filter((trade) => trade.returnAmount === null).length,
+    openTrades: trades.filter((trade) => trade.status === "OPEN").length,
     closedTrades: closed.length,
   };
 }

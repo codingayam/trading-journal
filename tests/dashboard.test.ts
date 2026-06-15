@@ -23,6 +23,19 @@ const seededTrades: DashboardTrade[] = [
     returnPercent: null,
   },
   {
+    id: "trade-amzn-partial-2026-06-10",
+    symbol: "AMZN",
+    side: "LONG",
+    quantity: 100,
+    entryDateTime: "2026-06-10T13:35:00.000Z",
+    entryPrice: 180,
+    exitDateTime: "2026-06-10T14:05:00.000Z",
+    exitPrice: 190,
+    status: "OPEN",
+    returnAmount: 400,
+    returnPercent: 5.56,
+  },
+  {
     id: "trade-meta-2026-06-09",
     symbol: "META",
     side: "SHORT",
@@ -77,13 +90,14 @@ const seededTrades: DashboardTrade[] = [
 ];
 
 const allSummary = getDashboardSummary(filterDashboardTrades(seededTrades, "all", now));
-assert.equal(allSummary.totalPnl, 91);
-assert.equal(allSummary.wins, 2);
+assert.equal(allSummary.totalPnl, 491);
+assert.equal(allSummary.wins, 3);
 assert.equal(allSummary.losses, 2);
-assert.equal(Math.round(allSummary.winRate), 50);
-assert.equal(allSummary.averageWin, 71.5);
+assert.equal(Math.round(allSummary.winRate), 60);
+assert.equal(allSummary.averageWin, 181);
 assert.equal(allSummary.averageLoss, -26);
-assert.equal(allSummary.openTrades, 1);
+assert.equal(allSummary.openTrades, 2);
+assert.equal(allSummary.closedTrades, 4);
 
 assert.deepEqual(
   getEquityPoints(seededTrades).map((point) => ({
@@ -96,11 +110,12 @@ assert.deepEqual(
     { symbol: "MSFT", pnl: -34, equity: 61 },
     { symbol: "TSM", pnl: 48, equity: 109 },
     { symbol: "META", pnl: -18, equity: 91 },
+    { symbol: "AMZN", pnl: 400, equity: 491 },
   ],
 );
 
-assert.equal(filterDashboardTrades(seededTrades, "today", now).length, 1);
-assert.equal(filterDashboardTrades(seededTrades, "week", now).length, 5);
-assert.equal(filterDashboardTrades(seededTrades, "month", now).length, 5);
-assert.equal(filterDashboardTrades(seededTrades, "year", now).length, 5);
+assert.equal(filterDashboardTrades(seededTrades, "today", now).length, 2);
+assert.equal(filterDashboardTrades(seededTrades, "week", now).length, 6);
+assert.equal(filterDashboardTrades(seededTrades, "month", now).length, 6);
+assert.equal(filterDashboardTrades(seededTrades, "year", now).length, 6);
 assert.equal(filterDashboardTrades(seededTrades, "last-year", now).length, 0);

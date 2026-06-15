@@ -34,7 +34,7 @@ export function dateKey(date: Date) {
 }
 
 export function closedTradeDate(trade: CalendarTrade) {
-  if (trade.status !== "CLOSED" || trade.returnAmount === null || !trade.exitDateTime) {
+  if (trade.returnAmount === null || !trade.exitDateTime) {
     return null;
   }
 
