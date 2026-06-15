@@ -113,7 +113,11 @@ export function TradingWorkspace({ initialOpenPositionPnl, initialTrades }: Trad
     <div className="dashboard-shell">
       <DashboardView openPositionPnl={activeOpenPositionPnl} trades={sortedTrades} />
       <section className="dashboard-primary-trades-slot" aria-label="Primary trade list">
-        <TradeLog onTradesChange={setTrades} trades={sortedTrades} />
+        <TradeLog
+          onTradesChange={setTrades}
+          openPositionPnl={activeOpenPositionPnl}
+          trades={sortedTrades}
+        />
       </section>
       <section className="dashboard-calendar-slot" aria-label="Calendar and realized P/L">
         <PnlCalendar trades={sortedTrades} />

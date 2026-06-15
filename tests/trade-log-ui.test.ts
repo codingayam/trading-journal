@@ -3,6 +3,7 @@ import {
   appendSellExecutionPayload,
   createOpeningExecutionPayload,
   openPositionMarketValue,
+  openPositionPnlDetail,
   pageCountForTrades,
   paginatedTrades,
   reducingActionForSide,
@@ -52,6 +53,46 @@ function run() {
   assert.equal(paginatedTrades(trades, 2).length, 2);
   assert.equal(paginatedTrades(trades, 3)[0].id, "trade-10");
   assert.equal(openPositionMarketValue(trade(99, { entryPrice: 17.25, remainingQuantity: 8 })), 138);
+  assert.equal(
+    openPositionMarketValue(trade(99, { entryPrice: 17.25, remainingQuantity: 8 }), 21.5),
+    172,
+  );
+  assert.deepEqual(
+    openPositionPnlDetail(trade(1), {
+      tradeId: "trade-1",
+      symbol: "T1",
+      status: "available",
+      side: "LONG",
+      remainingQuantity: 100,
+      averageEntryPrice: 10,
+      latestPrice: 21.5,
+      unrealizedPnl: 1150,
+      quoteAsOf: "2026-06-12T13:30:00.000Z",
+    }),
+    {
+      status: "available",
+      latestPrice: 21.5,
+      quoteAsOf: "2026-06-12T13:30:00.000Z",
+      value: 1150,
+    },
+  );
+  assert.deepEqual(
+    openPositionPnlDetail(trade(2), {
+      tradeId: "trade-2",
+      symbol: "T2",
+      status: "unavailable",
+      side: "LONG",
+      remainingQuantity: 100,
+      latestPrice: null,
+      unrealizedPnl: null,
+      message: "No usable latest daily close was returned for this symbol.",
+    }),
+    {
+      status: "unavailable",
+      message: "No usable latest daily close was returned for this symbol.",
+      value: null,
+    },
+  );
 
   const buyForm: TradeFormState = {
     assetClass: "Stock",

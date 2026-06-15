@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useState } from "react";
+import type { DashboardOpenPositionPnl } from "@/lib/dashboard";
 
 type ExecutionAction = "BUY" | "SELL";
 
@@ -106,8 +107,56 @@ function percent(value: number | null) {
   return value === null ? "Open" : `${value}%`;
 }
 
-export function openPositionMarketValue(trade: Pick<TradeRecord, "entryPrice" | "remainingQuantity">) {
-  return trade.remainingQuantity * trade.entryPrice;
+export function openPositionMarketValue(
+  trade: Pick<TradeRecord, "entryPrice" | "remainingQuantity">,
+  latestPrice?: number | null,
+) {
+  return trade.remainingQuantity * (latestPrice ?? trade.entryPrice);
+}
+
+export type TradeOpenPositionPnlDetail =
+  | {
+      status: "available";
+      latestPrice: number;
+      quoteAsOf: string | null;
+      value: number;
+    }
+  | {
+      status: "unavailable";
+      message: string;
+      value: null;
+    };
+
+export function openPositionPnlDetail(
+  trade: Pick<TradeRecord, "remainingQuantity" | "status">,
+  openPositionPnl?: DashboardOpenPositionPnl,
+): TradeOpenPositionPnlDetail {
+  if (trade.status !== "OPEN" || trade.remainingQuantity <= 0) {
+    return {
+      status: "unavailable",
+      message: "No open quantity remains for this position.",
+      value: null,
+    };
+  }
+
+  if (
+    openPositionPnl?.status === "available" &&
+    openPositionPnl.latestPrice !== null &&
+    openPositionPnl.unrealizedPnl !== null
+  ) {
+    return {
+      status: "available",
+      latestPrice: openPositionPnl.latestPrice,
+      quoteAsOf: openPositionPnl.quoteAsOf ?? null,
+      value: openPositionPnl.unrealizedPnl,
+    };
+  }
+
+  return {
+    status: "unavailable",
+    message: openPositionPnl?.message ?? "Latest EOD quote has not been fetched for this open trade yet.",
+    value: null,
+  };
 }
 
 function formFromTrade(trade: TradeRecord): TradeFormState {
@@ -235,9 +284,11 @@ export function appendSellExecutionPayload(trade: TradeRecord, form: SellFormSta
 
 export function TradeLog({
   onTradesChange,
+  openPositionPnl = [],
   trades,
 }: {
   onTradesChange: (trades: TradeRecord[]) => void;
+  openPositionPnl?: DashboardOpenPositionPnl[];
   trades: TradeRecord[];
 }) {
   const [modalMode, setModalMode] = useState<"buy" | "addBuy" | "edit" | "sell" | null>(null);
@@ -257,6 +308,16 @@ export function TradeLog({
   const selectedTrade = useMemo(
     () => trades.find((trade) => trade.id === selectedTradeId) ?? null,
     [selectedTradeId, trades],
+  );
+  const selectedOpenPositionPnl = useMemo(
+    () =>
+      selectedTrade ? openPositionPnl.find((point) => point.tradeId === selectedTrade.id) : undefined,
+    [openPositionPnl, selectedTrade],
+  );
+  const selectedOpenPositionDetail = useMemo(
+    () =>
+      selectedTrade ? openPositionPnlDetail(selectedTrade, selectedOpenPositionPnl) : null,
+    [selectedOpenPositionPnl, selectedTrade],
   );
   const openTrades = useMemo(
     () => trades.filter((trade) => trade.status === "OPEN").length,
@@ -634,7 +695,9 @@ export function TradeLog({
               </div>
               <div>
                 <span>Open market value</span>
-                <strong>{money(openPositionMarketValue(selectedTrade))}</strong>
+                <strong>
+                  {money(openPositionMarketValue(selectedTrade, selectedOpenPositionPnl?.latestPrice))}
+                </strong>
               </div>
               <div>
                 <span>Realized P/L</span>
@@ -653,8 +716,28 @@ export function TradeLog({
               </div>
               <div>
                 <span>Outstanding position P/L</span>
-                <strong className="muted-cell">Unavailable</strong>
-                <small>needs market price</small>
+                <strong
+                  className={
+                    selectedOpenPositionDetail?.status !== "available"
+                      ? "muted-cell"
+                      : selectedOpenPositionDetail.value >= 0
+                        ? "positive"
+                        : "negative"
+                  }
+                >
+                  {selectedOpenPositionDetail?.status === "available"
+                    ? money(selectedOpenPositionDetail.value)
+                    : "Unavailable"}
+                </strong>
+                <small>
+                  {selectedOpenPositionDetail?.status === "available"
+                    ? `latest ${money(selectedOpenPositionDetail.latestPrice)}${
+                        selectedOpenPositionDetail.quoteAsOf
+                          ? ` as of ${shortDate(selectedOpenPositionDetail.quoteAsOf)}`
+                          : ""
+                      }`
+                    : selectedOpenPositionDetail?.message}
+                </small>
               </div>
             </div>
             <div className="detail-meta-grid">
