@@ -106,6 +106,10 @@ function percent(value: number | null) {
   return value === null ? "Open" : `${value}%`;
 }
 
+export function openPositionMarketValue(trade: Pick<TradeRecord, "entryPrice" | "remainingQuantity">) {
+  return trade.remainingQuantity * trade.entryPrice;
+}
+
 function formFromTrade(trade: TradeRecord): TradeFormState {
   const opening = openingExecution(trade);
 
@@ -618,39 +622,22 @@ export function TradeLog({
               </button>
             </div>
             {error ? <p className="form-error">{error}</p> : null}
-            <div className="detail-summary-grid">
+            <div className="detail-summary-grid position-summary-grid">
               <div>
                 <span>Status</span>
                 <strong>{selectedTrade.status}</strong>
               </div>
               <div>
-                <span>Remaining</span>
+                <span>Open position</span>
                 <strong>{selectedTrade.remainingQuantity}</strong>
+                <small>shares</small>
               </div>
               <div>
-                <span>Realized P/L</span>
-                <strong
-                  className={
-                    selectedTrade.returnAmount === null
-                      ? "muted-cell"
-                      : selectedTrade.returnAmount >= 0
-                        ? "positive"
-                        : "negative"
-                  }
-                >
-                  {money(selectedTrade.returnAmount)}
-                </strong>
-              </div>
-              <div>
-                <span>Return</span>
-                <strong>{percent(selectedTrade.returnPercent)}</strong>
+                <span>Open market value</span>
+                <strong>{money(openPositionMarketValue(selectedTrade))}</strong>
               </div>
             </div>
             <div className="detail-meta-grid">
-              <p>
-                <span>Asset</span>
-                {selectedTrade.assetClass}
-              </p>
               <p>
                 <span>Side</span>
                 {selectedTrade.side}
@@ -670,6 +657,24 @@ export function TradeLog({
               <p>
                 <span>Total fees</span>
                 {money(selectedTrade.fees)}
+              </p>
+              <p>
+                <span>Realized P/L</span>
+                <strong
+                  className={
+                    selectedTrade.returnAmount === null
+                      ? "muted-cell"
+                      : selectedTrade.returnAmount >= 0
+                        ? "positive"
+                        : "negative"
+                  }
+                >
+                  {money(selectedTrade.returnAmount)}
+                </strong>
+              </p>
+              <p>
+                <span>Return</span>
+                {percent(selectedTrade.returnPercent)}
               </p>
             </div>
             <div className="execution-section">

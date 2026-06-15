@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   appendSellExecutionPayload,
   createOpeningExecutionPayload,
+  openPositionMarketValue,
   pageCountForTrades,
   paginatedTrades,
   reducingActionForSide,
@@ -50,6 +51,7 @@ function run() {
   assert.equal(paginatedTrades(trades, 1).length, 10);
   assert.equal(paginatedTrades(trades, 2).length, 2);
   assert.equal(paginatedTrades(trades, 3)[0].id, "trade-10");
+  assert.equal(openPositionMarketValue(trade(99, { entryPrice: 17.25, remainingQuantity: 8 })), 138);
 
   const buyForm: TradeFormState = {
     assetClass: "Stock",

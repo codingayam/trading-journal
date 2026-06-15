@@ -1380,6 +1380,10 @@ tbody tr:hover {
   margin-bottom: 14px;
 }
 
+.position-summary-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .detail-summary-grid div,
 .detail-meta-grid p {
   background: #121514;
@@ -1392,6 +1396,7 @@ tbody tr:hover {
 }
 
 .detail-summary-grid span,
+.detail-summary-grid small,
 .detail-meta-grid span,
 .execution-row small,
 .execution-row > span:last-child,
