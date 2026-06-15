@@ -499,7 +499,7 @@ export function TradeLog({
               <th>Open</th>
               <th>Entry</th>
               <th>Exit</th>
-              <th>Return</th>
+              <th>Realized P/L</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -636,6 +636,26 @@ export function TradeLog({
                 <span>Open market value</span>
                 <strong>{money(openPositionMarketValue(selectedTrade))}</strong>
               </div>
+              <div>
+                <span>Realized P/L</span>
+                <strong
+                  className={
+                    selectedTrade.returnAmount === null
+                      ? "muted-cell"
+                      : selectedTrade.returnAmount >= 0
+                        ? "positive"
+                        : "negative"
+                  }
+                >
+                  {money(selectedTrade.returnAmount)}
+                </strong>
+                <small>{percent(selectedTrade.returnPercent)}</small>
+              </div>
+              <div>
+                <span>Outstanding position P/L</span>
+                <strong className="muted-cell">Unavailable</strong>
+                <small>needs market price</small>
+              </div>
             </div>
             <div className="detail-meta-grid">
               <p>
@@ -673,7 +693,7 @@ export function TradeLog({
                 </strong>
               </p>
               <p>
-                <span>Return</span>
+                <span>Realized return</span>
                 {percent(selectedTrade.returnPercent)}
               </p>
             </div>
