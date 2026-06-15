@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import {
-  DashboardTrade,
   filterDashboardTrades,
+  getEquityChartModel,
   getDashboardSummary,
   getEquityPoints,
 } from "../lib/dashboard";
+import type { DashboardOpenPositionPnl, DashboardTrade } from "../lib/dashboard";
 
 const now = new Date("2026-06-10T12:00:00+08:00");
 
@@ -113,6 +114,78 @@ assert.deepEqual(
     { symbol: "AMZN", pnl: 400, equity: 491 },
   ],
 );
+
+const openPositionPnl: DashboardOpenPositionPnl[] = [
+  {
+    tradeId: "trade-nvda-2026-06-10",
+    symbol: "NVDA",
+    status: "available",
+    side: "LONG",
+    remainingQuantity: 5,
+    averageEntryPrice: 143.2,
+    latestPrice: 150,
+    unrealizedPnl: 34,
+    quoteAsOf: "2026-06-12T13:30:00.000Z",
+  },
+  {
+    tradeId: "trade-amzn-partial-2026-06-10",
+    symbol: "AMZN",
+    status: "available",
+    side: "LONG",
+    remainingQuantity: 60,
+    averageEntryPrice: 180,
+    latestPrice: 191,
+    unrealizedPnl: 660,
+    quoteAsOf: "2026-06-12T13:30:00.000Z",
+  },
+  {
+    tradeId: "trade-missing-quote",
+    symbol: "MSFT",
+    status: "unavailable",
+    side: "LONG",
+    remainingQuantity: 5,
+    latestPrice: null,
+    unrealizedPnl: null,
+    message: "No usable latest daily close was returned for this symbol.",
+  },
+];
+
+const chartModel = getEquityChartModel(seededTrades, openPositionPnl);
+assert.deepEqual(
+  chartModel.closed.map((point) => ({
+    symbol: point.symbol,
+    absoluteValue: point.absoluteValue,
+    percentValue: point.percentValue,
+    pointPercent: point.pointPercent,
+  })),
+  [
+    { symbol: "AAPL", absoluteValue: 95, percentValue: 0.97, pointPercent: 0.97 },
+    { symbol: "MSFT", absoluteValue: 61, percentValue: 0.32, pointPercent: -0.36 },
+    { symbol: "TSM", absoluteValue: 109, percentValue: 0.44, pointPercent: 0.88 },
+    { symbol: "META", absoluteValue: 91, percentValue: 0.29, pointPercent: -0.28 },
+    { symbol: "AMZN", absoluteValue: 491, percentValue: 1.28, pointPercent: 5.56 },
+  ],
+);
+assert.deepEqual(
+  chartModel.open.map((point) => ({
+    symbol: point.symbol,
+    pnl: point.pnl,
+    absoluteValue: point.absoluteValue,
+    percentValue: point.percentValue,
+    pointPercent: point.pointPercent,
+  })),
+  [
+    { symbol: "AMZN", pnl: 660, absoluteValue: 660, percentValue: 6.11, pointPercent: 6.11 },
+    { symbol: "NVDA", pnl: 34, absoluteValue: 694, percentValue: 6.03, pointPercent: 4.75 },
+  ],
+);
+assert.deepEqual(chartModel.unavailableOpen, [
+  {
+    tradeId: "trade-missing-quote",
+    symbol: "MSFT",
+    message: "No usable latest daily close was returned for this symbol.",
+  },
+]);
 
 assert.equal(filterDashboardTrades(seededTrades, "today", now).length, 2);
 assert.equal(filterDashboardTrades(seededTrades, "week", now).length, 6);
