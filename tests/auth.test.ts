@@ -9,6 +9,7 @@ import { GET as me } from "../app/api/me/route";
 import { DELETE as deleteTrade, PATCH as updateTrade } from "../app/api/trades/[id]/route";
 import { GET as listTrades, POST as createTrade } from "../app/api/trades/route";
 import { hashPassword, verifyPassword } from "../lib/password";
+import { sessionCookieName, tokenHash } from "../lib/auth";
 
 const dbPath = "prisma/auth-test.db";
 const prisma = new PrismaClient();
@@ -29,6 +30,12 @@ function cookieFrom(response: Response) {
   assert.ok(cookie, "expected a set-cookie header");
   assert.match(cookie, /HttpOnly/i);
   return cookie.split(";")[0];
+}
+
+function cookieValue(cookie: string) {
+  const [, value] = cookie.split("=");
+  assert.ok(value, "expected cookie value");
+  return value;
 }
 
 async function resetDb() {
@@ -98,6 +105,11 @@ async function run() {
   );
   assert.equal(loginResponse.status, 200);
   const firstCookie = cookieFrom(loginResponse);
+  const firstSessionHash = tokenHash(cookieValue(firstCookie));
+  assert.equal(
+    await prisma.authSession.count({ where: { tokenHash: firstSessionHash } }),
+    1,
+  );
 
   const meResponse = await me(jsonRequest("http://test.local/api/me", undefined, firstCookie));
   assert.equal(meResponse.status, 200);
@@ -227,10 +239,25 @@ async function run() {
     jsonRequest("http://test.local/api/auth/logout", undefined, firstCookie),
   );
   assert.equal(logoutResponse.status, 200);
+  const logoutCookie = logoutResponse.headers.get("set-cookie");
+  assert.ok(logoutCookie, "expected logout to expire the session cookie");
+  assert.match(logoutCookie, new RegExp(`${sessionCookieName}=;`));
+  assert.match(logoutCookie, /Expires=Thu, 01 Jan 1970/i);
+  assert.match(logoutCookie, /HttpOnly/i);
+  assert.equal(
+    await prisma.authSession.count({ where: { tokenHash: firstSessionHash } }),
+    0,
+  );
+
   const afterLogout = await me(
     jsonRequest("http://test.local/api/me", undefined, firstCookie),
   );
   assert.equal(afterLogout.status, 401);
+
+  const tradesAfterLogout = await listTrades(
+    jsonRequest("http://test.local/api/trades", undefined, firstCookie),
+  );
+  assert.equal(tradesAfterLogout.status, 401);
 }
 
 run()
