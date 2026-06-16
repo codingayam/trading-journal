@@ -683,39 +683,22 @@ export function TradeLog({
               </button>
             </div>
             {error ? <p className="form-error">{error}</p> : null}
-            <div className="detail-summary-grid position-summary-grid">
+            <div className="trade-detail-summary-strip">
               <div>
                 <span>Status</span>
                 <strong>{selectedTrade.status}</strong>
               </div>
               <div>
-                <span>Open position</span>
+                <span>Open quantity</span>
                 <strong>{selectedTrade.remainingQuantity}</strong>
-                <small>shares</small>
+                <small>of {selectedTrade.quantity}</small>
               </div>
               <div>
-                <span>Open market value</span>
-                <strong>
-                  {money(openPositionMarketValue(selectedTrade, selectedOpenPositionPnl?.latestPrice))}
-                </strong>
+                <span>Average entry</span>
+                <strong>{money(selectedTrade.entryPrice)}</strong>
               </div>
               <div>
-                <span>Realized P/L</span>
-                <strong
-                  className={
-                    selectedTrade.returnAmount === null
-                      ? "muted-cell"
-                      : selectedTrade.returnAmount >= 0
-                        ? "positive"
-                        : "negative"
-                  }
-                >
-                  {money(selectedTrade.returnAmount)}
-                </strong>
-                <small>{percent(selectedTrade.returnPercent)}</small>
-              </div>
-              <div>
-                <span>Outstanding position P/L</span>
+                <span>Open P/L</span>
                 <strong
                   className={
                     selectedOpenPositionDetail?.status !== "available"
@@ -739,29 +722,7 @@ export function TradeLog({
                     : selectedOpenPositionDetail?.message}
                 </small>
               </div>
-            </div>
-            <div className="detail-meta-grid">
-              <p>
-                <span>Side</span>
-                {selectedTrade.side}
-              </p>
-              <p>
-                <span>Total quantity</span>
-                {selectedTrade.quantity}
-              </p>
-              <p>
-                <span>Average entry</span>
-                {money(selectedTrade.entryPrice)}
-              </p>
-              <p>
-                <span>Last exit</span>
-                {selectedTrade.exitPrice === null ? "Open" : money(selectedTrade.exitPrice)}
-              </p>
-              <p>
-                <span>Total fees</span>
-                {money(selectedTrade.fees)}
-              </p>
-              <p>
+              <div>
                 <span>Realized P/L</span>
                 <strong
                   className={
@@ -774,34 +735,62 @@ export function TradeLog({
                 >
                   {money(selectedTrade.returnAmount)}
                 </strong>
-              </p>
-              <p>
-                <span>Realized return</span>
-                {percent(selectedTrade.returnPercent)}
-              </p>
-            </div>
-            <div className="execution-section">
-              <h3>Execution History</h3>
-              <div className="execution-list">
-                {selectedTrade.executions.length > 0 ? (
-                  selectedTrade.executions.map((execution, index) => (
-                    <div className="execution-row" key={execution.id ?? `${execution.action}-${index}`}>
-                      <span className={execution.action === "BUY" ? "badge badge-success" : "badge badge-danger"}>
-                        {execution.action}
-                      </span>
-                      <div>
-                        <strong>
-                          {execution.quantity} @ {money(execution.price)}
-                        </strong>
-                        <small>{displayDateTime(execution.executedAt)}</small>
-                      </div>
-                      <span>{money(execution.fees)} fees</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="muted-cell">No execution history recorded.</p>
-                )}
+                <small>{percent(selectedTrade.returnPercent)}</small>
               </div>
+            </div>
+            <div className="trade-detail-content-grid">
+              <section className="trade-detail-section" aria-labelledby="position-details-title">
+                <h3 id="position-details-title">Position Details</h3>
+                <dl className="position-detail-list">
+                  <div>
+                    <dt>Side</dt>
+                    <dd>{selectedTrade.side}</dd>
+                  </div>
+                  <div>
+                    <dt>Asset class</dt>
+                    <dd>{selectedTrade.assetClass}</dd>
+                  </div>
+                  <div>
+                    <dt>Open market value</dt>
+                    <dd>{money(openPositionMarketValue(selectedTrade, selectedOpenPositionPnl?.latestPrice))}</dd>
+                  </div>
+                  <div>
+                    <dt>Last exit</dt>
+                    <dd>{selectedTrade.exitPrice === null ? "Open" : money(selectedTrade.exitPrice)}</dd>
+                  </div>
+                  <div>
+                    <dt>Total fees</dt>
+                    <dd>{money(selectedTrade.fees)}</dd>
+                  </div>
+                  <div>
+                    <dt>Executions</dt>
+                    <dd>{selectedTrade.executions.length}</dd>
+                  </div>
+                </dl>
+              </section>
+              <section className="trade-detail-section execution-section" aria-labelledby="execution-history-title">
+                <h3 id="execution-history-title">Execution History</h3>
+                <div className="execution-list">
+                  {selectedTrade.executions.length > 0 ? (
+                    selectedTrade.executions.map((execution, index) => (
+                      <div className="execution-row" key={execution.id ?? `${execution.action}-${index}`}>
+                        <span className={execution.action === "BUY" ? "badge badge-success" : "badge badge-danger"}>
+                          {execution.action}
+                        </span>
+                        <div>
+                          <strong>
+                            {execution.quantity} @ {money(execution.price)}
+                          </strong>
+                          <small>{displayDateTime(execution.executedAt)}</small>
+                        </div>
+                        <span>{money(execution.fees)} fees</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="muted-cell">No execution history recorded.</p>
+                  )}
+                </div>
+              </section>
             </div>
             <div className="modal-actions">
               <button
